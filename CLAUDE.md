@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Platform:** **Kotlin Multiplatform (KMP) + Compose Multiplatform**, targeting **Android and iOS** from one shared codebase. This is settled — the project is KMP, not Android-only.
 - **State:** only the default template code exists so far (`App.kt` with a "Click me!" button, `Greeting`, `Platform` expect/actual). No product features are built yet.
 
-`.plan/` (00–15, numbered by topic) is the reconciled source of truth for intent — vision, requirements, data model, sync design, security, roadmap. Its tech-stack docs have been aligned to KMP; the chosen stack is:
+`.plan/` (00–10, numbered by topic — overview, requirements, design decisions, UI/UX, architecture, auth, data+sync, security, testing, roadmap, guidelines) is the source of truth for intent. Decisions are logged ADR-style in `.plan/02-design-decisions.md` — change a decision there first, then code. The chosen stack is:
 
 - **DI:** Koin (not Hilt — Hilt is Android-only)
 - **Local DB:** Room KMP (entities/DAOs in `commonMain`; DB builder per platform via `expect`/`actual`)
@@ -51,7 +51,7 @@ Note: there is currently **no lint task and no CI configured**. `assembleDebug` 
 
 ## Target design (from `.plan/`, for when building features)
 
-Before writing feature code, read `.plan/14-coding-guidelines.md` (the coding rules) and `.plan/15-ai-instructions.md` (the AI build directives); the numbered `.plan/` docs (07 data-model, 08 database, 09 sync-engine, 11 security) are the spec for each subsystem.
+Before writing feature code, read `.plan/10-guidelines.md` (coding rules + AI directives); the numbered `.plan/` docs are the spec for each subsystem — 03 UI/UX (per-screen specs + design system), 04 architecture, 05 authentication, 06 data-and-sync, 07 security. Build order and acceptance criteria live in `.plan/09-roadmap.md`.
 
 - **Offline-first flow:** validate → save to local DB (marked `Pending`) → update UI → queue background sync. Sync uploads `Pending` records to Firestore (`patients/{patientId}/vitals/{recordId}`), marks `Synced`, retries with exponential backoff. Conflict resolution: last-updated-timestamp wins.
 - **Vitals validation ranges:** SpO₂ 70–100, Heart Rate 20–250, Systolic BP 50–250, Diastolic BP 30–180.
