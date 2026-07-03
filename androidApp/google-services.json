@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "495982458424",
+    "project_id": "vitalcare-kmp",
+    "storage_bucket": "vitalcare-kmp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:495982458424:android:e8a1015ad43af2954e18cd",
+        "android_client_info": {
+          "package_name": "com.techgv.vitalcare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMpYeqf69eZEfFKBb3-U0A_wCpWbdAcP0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

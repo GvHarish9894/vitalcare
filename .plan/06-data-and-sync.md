@@ -107,6 +107,14 @@ Fields mirror the local schema 1:1 (minus `syncStatus`/`deleted`, which are loca
 Writes use `set(merge = true)` so uploads are idempotent. kotlinx.serialization DTOs +
 mappers translate entity ↔ document.
 
+**Provisioned infrastructure (2026-07-03):** Firebase project **`vitalcare-kmp`**
+(number `495982458424`). Firestore `(default)` database, `asia-south1`, Native mode,
+free tier. Registered apps: Android `com.techgv.vitalcare`
+(`1:495982458424:android:e8a1015ad43af2954e18cd`), iOS `com.techgv.vitalcare`
+(`1:495982458424:ios:f9936dff60a682a04e18cd`). Email/password auth enabled.
+Security rules (§07/4) live in `firestore.rules` at repo root, deployed via
+`firebase deploy --only firestore`; config in `firebase.json` / `.firebaserc`.
+
 ## 4. Sync status lifecycle
 
 ```
