@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		F4122AEC8F8F73A02CBDFB58 /* HealthMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HealthMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F4122AEC8F8F73A02CBDFB58 /* VitalCare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VitalCare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -59,7 +59,7 @@
 		9FD052802EE9BD7DE299DC14 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F4122AEC8F8F73A02CBDFB58 /* HealthMonitor.app */,
+				F4122AEC8F8F73A02CBDFB58 /* VitalCare.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -87,7 +87,7 @@
 			packageProductDependencies = (
 			);
 			productName = iosApp;
-			productReference = F4122AEC8F8F73A02CBDFB58 /* HealthMonitor.app */;
+			productReference = F4122AEC8F8F73A02CBDFB58 /* VitalCare.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */

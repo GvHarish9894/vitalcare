@@ -1,4 +1,4 @@
-package com.techgv.healthmoniter
+package com.techgv.vitalcare
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

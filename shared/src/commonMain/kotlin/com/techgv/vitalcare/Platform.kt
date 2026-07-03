@@ -1,4 +1,4 @@
-package com.techgv.healthmoniter
+package com.techgv.vitalcare
 
 interface Platform {
     val name: String

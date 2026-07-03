@@ -21,11 +21,11 @@ dependencies {
 }
 
 android {
-    namespace = "com.techgv.healthmoniter"
+    namespace = "com.techgv.vitalcare"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.techgv.healthmoniter"
+        applicationId = "com.techgv.vitalcare"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

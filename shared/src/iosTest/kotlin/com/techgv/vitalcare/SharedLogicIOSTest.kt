@@ -1,9 +1,9 @@
-package com.techgv.healthmoniter
+package com.techgv.vitalcare
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class SharedCommonTest {
+class SharedLogicIOSTest {
 
     @Test
     fun example() {

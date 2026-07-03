@@ -19,7 +19,7 @@ kotlin {
     }
     
     androidLibrary {
-       namespace = "com.techgv.healthmoniter.shared"
+       namespace = "com.techgv.vitalcare.shared"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
        minSdk = libs.versions.android.minSdk.get().toInt()
     

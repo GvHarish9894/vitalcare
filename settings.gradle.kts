@@ -1,4 +1,4 @@
-rootProject.name = "HealthMonitor"
+rootProject.name = "VitalCare"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

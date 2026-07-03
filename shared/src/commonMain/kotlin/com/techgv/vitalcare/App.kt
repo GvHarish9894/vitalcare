@@ -1,4 +1,4 @@
-package com.techgv.healthmoniter
+package com.techgv.vitalcare
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
@@ -16,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import org.jetbrains.compose.resources.painterResource
 
-import healthmonitor.shared.generated.resources.Res
-import healthmonitor.shared.generated.resources.compose_multiplatform
+import vitalcare.shared.generated.resources.Res
+import vitalcare.shared.generated.resources.compose_multiplatform
 
 @Composable
 @Preview

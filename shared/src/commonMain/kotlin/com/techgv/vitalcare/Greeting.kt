@@ -1,4 +1,4 @@
-package com.techgv.healthmoniter
+package com.techgv.vitalcare
 
 class Greeting {
     private val platform = getPlatform()

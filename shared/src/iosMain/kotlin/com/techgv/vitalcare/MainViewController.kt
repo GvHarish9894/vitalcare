@@ -1,4 +1,4 @@
-package com.techgv.healthmoniter
+package com.techgv.vitalcare
 
 import androidx.compose.ui.window.ComposeUIViewController
 
