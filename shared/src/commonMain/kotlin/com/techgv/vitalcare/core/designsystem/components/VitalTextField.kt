@@ -3,6 +3,7 @@ package com.techgv.vitalcare.core.designsystem.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +61,7 @@ fun VitalTextField(
                 errorIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
             ),
-            modifier = Modifier.matchParentSizeIfNeeded(onClick != null),
+            modifier = Modifier.fillMaxWidth(),
         )
         if (onClick != null) {
             // TextField consumes taps even when read-only; a transparent overlay
@@ -77,5 +78,3 @@ fun VitalTextField(
         }
     }
 }
-
-private fun Modifier.matchParentSizeIfNeeded(needed: Boolean): Modifier = this
