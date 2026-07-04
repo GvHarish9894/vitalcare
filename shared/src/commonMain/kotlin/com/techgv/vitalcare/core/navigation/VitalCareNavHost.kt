@@ -1,13 +1,8 @@
 package com.techgv.vitalcare.core.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -18,6 +13,7 @@ import com.techgv.vitalcare.feature.analytics.AnalyticsScreen
 import com.techgv.vitalcare.feature.dashboard.DashboardScreen
 import com.techgv.vitalcare.feature.history.HistoryScreen
 import com.techgv.vitalcare.feature.history.RecordDetailsScreen
+import com.techgv.vitalcare.feature.settings.SettingsScreen
 import com.techgv.vitalcare.feature.vitals.RecordVitalsScreen
 import kotlinx.coroutines.launch
 
@@ -60,6 +56,7 @@ fun VitalCareNavHost(
             HistoryScreen(
                 onOpenDetails = { id -> navController.navigate(RecordDetailsRoute(id)) },
                 onRecordVitals = { navController.navigate(RecordVitalsRoute()) },
+                showSnackbar = showSnackbar,
             )
         }
         composable<RecordDetailsRoute> { entry ->
@@ -75,7 +72,7 @@ fun VitalCareNavHost(
             AnalyticsScreen()
         }
         composable<SettingsRoute> {
-            PlaceholderScreen("Settings")
+            SettingsScreen(showSnackbar = showSnackbar)
         }
     }
 }
@@ -86,13 +83,5 @@ fun NavHostController.navigateToTopLevel(route: Any) {
         popUpTo(graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true
         restoreState = true
-    }
-}
-
-// Placeholder until each feature checkpoint lands its real screen.
-@Composable
-private fun PlaceholderScreen(title: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = title, style = MaterialTheme.typography.displaySmall)
     }
 }

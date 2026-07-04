@@ -125,10 +125,15 @@ private fun RecordVitalsContent(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Date — auto, visually non-editable (BR-4).
+            // Date — auto, visually non-editable (BR-4). Create mode always
+            // dates the record today; edits (today-only, BR-2) show the date plainly.
+            val formattedDate = FullDateFormat.format(uiState.date)
             VitalTextField(
-                value = stringResource(Res.string.date_today_format, FullDateFormat.format(uiState.date))
-                    .takeIf { !uiState.isEdit } ?: FullDateFormat.format(uiState.date),
+                value = if (uiState.isEdit) {
+                    formattedDate
+                } else {
+                    stringResource(Res.string.date_today_format, formattedDate)
+                },
                 onValueChange = {},
                 label = stringResource(Res.string.field_date),
                 readOnly = true,

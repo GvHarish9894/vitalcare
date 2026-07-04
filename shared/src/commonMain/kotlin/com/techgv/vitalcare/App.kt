@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.techgv.vitalcare.core.designsystem.components.BottomNavBar
@@ -27,12 +29,22 @@ import com.techgv.vitalcare.core.designsystem.theme.VitalCareTheme
 import com.techgv.vitalcare.core.navigation.TopLevelDestination
 import com.techgv.vitalcare.core.navigation.VitalCareNavHost
 import com.techgv.vitalcare.core.navigation.navigateToTopLevel
+import com.techgv.vitalcare.domain.model.ThemePreference
+import com.techgv.vitalcare.domain.repository.SettingsRepository
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 
 /** Root composable: theme + Scaffold (snackbar, floating bottom bar) + NavHost. */
 @Composable
 fun App() {
-    VitalCareTheme {
+    val settingsRepository = koinInject<SettingsRepository>()
+    val themePreference by settingsRepository.theme.collectAsStateWithLifecycle()
+    val darkTheme = when (themePreference) {
+        ThemePreference.SYSTEM -> isSystemInDarkTheme()
+        ThemePreference.LIGHT -> false
+        ThemePreference.DARK -> true
+    }
+    VitalCareTheme(darkTheme = darkTheme) {
         val navController = rememberNavController()
         val snackbarHostState = remember { SnackbarHostState() }
         val backStackEntry by navController.currentBackStackEntryAsState()

@@ -16,6 +16,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.FilterChip
@@ -25,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +44,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import vitalcare.shared.generated.resources.Res
 import vitalcare.shared.generated.resources.action_search
+import vitalcare.shared.generated.resources.export_empty
+import vitalcare.shared.generated.resources.export_failed
 import vitalcare.shared.generated.resources.filter_all
 import vitalcare.shared.generated.resources.filter_month
 import vitalcare.shared.generated.resources.filter_today
@@ -51,6 +55,7 @@ import vitalcare.shared.generated.resources.header_yesterday
 import vitalcare.shared.generated.resources.history_empty_action
 import vitalcare.shared.generated.resources.history_empty_message
 import vitalcare.shared.generated.resources.history_empty_title
+import vitalcare.shared.generated.resources.history_export_csv
 import vitalcare.shared.generated.resources.history_no_matches
 import vitalcare.shared.generated.resources.history_search_hint
 import vitalcare.shared.generated.resources.history_title
@@ -61,9 +66,21 @@ import vitalcare.shared.generated.resources.unit_percent
 fun HistoryScreen(
     onOpenDetails: (String) -> Unit,
     onRecordVitals: () -> Unit,
+    showSnackbar: (String) -> Unit,
 ) {
     val viewModel = koinViewModel<HistoryViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val exportEmpty = stringResource(Res.string.export_empty)
+    val exportFailed = stringResource(Res.string.export_failed)
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                HistoryEffect.ExportEmpty -> showSnackbar(exportEmpty)
+                HistoryEffect.ExportFailed -> showSnackbar(exportFailed)
+            }
+        }
+    }
 
     HistoryContent(
         uiState = uiState,
@@ -95,6 +112,12 @@ private fun HistoryContent(
                 icon = Icons.Rounded.Search,
                 contentDescription = stringResource(Res.string.action_search),
                 onClick = { onEvent(HistoryEvent.SearchToggled) },
+            )
+            Spacer(Modifier.padding(start = 8.dp))
+            CircleIconButton(
+                icon = Icons.Rounded.Download,
+                contentDescription = stringResource(Res.string.history_export_csv),
+                onClick = { onEvent(HistoryEvent.ExportClicked) },
             )
         }
         Spacer(Modifier.padding(top = 6.dp))

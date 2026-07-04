@@ -8,10 +8,13 @@ import com.techgv.vitalcare.core.util.CsvEncoder
 import com.techgv.vitalcare.core.util.DefaultDispatcherProvider
 import com.techgv.vitalcare.core.util.DispatcherProvider
 import com.techgv.vitalcare.data.local.VitalCareDatabase
+import com.techgv.vitalcare.data.repository.SettingsRepositoryImpl
 import com.techgv.vitalcare.data.repository.VitalsRepositoryImpl
 import com.techgv.vitalcare.data.settings.AppSettings
+import com.techgv.vitalcare.domain.repository.SettingsRepository
 import com.techgv.vitalcare.domain.repository.VitalsRepository
 import com.techgv.vitalcare.domain.usecase.DeleteVitalRecord
+import com.techgv.vitalcare.domain.usecase.ExportCsv
 import com.techgv.vitalcare.domain.usecase.GetAnalytics
 import com.techgv.vitalcare.domain.usecase.GetHistory
 import com.techgv.vitalcare.domain.usecase.GetTodaySummary
@@ -23,6 +26,7 @@ import com.techgv.vitalcare.feature.analytics.AnalyticsViewModel
 import com.techgv.vitalcare.feature.dashboard.DashboardViewModel
 import com.techgv.vitalcare.feature.history.HistoryViewModel
 import com.techgv.vitalcare.feature.history.RecordDetailsViewModel
+import com.techgv.vitalcare.feature.settings.SettingsViewModel
 import com.techgv.vitalcare.feature.vitals.RecordVitalsViewModel
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
@@ -58,6 +62,7 @@ val databaseModule: Module = module {
 
 val repositoryModule: Module = module {
     single<VitalsRepository> { VitalsRepositoryImpl(get(), get()) }
+    single<SettingsRepository> { SettingsRepositoryImpl(get(), get()) }
 }
 
 val useCaseModule: Module = module {
@@ -69,12 +74,14 @@ val useCaseModule: Module = module {
     factory { GetHistory(get(), get(), get()) }
     factory { ObserveVitalRecord(get()) }
     factory { GetAnalytics(get(), get(), get()) }
+    factory { ExportCsv(get(), get(), get(), get(), get()) }
 }
 
 val viewModelModule: Module = module {
     viewModel { DashboardViewModel(get(), get(), get()) }
-    viewModel { HistoryViewModel(get()) }
+    viewModel { HistoryViewModel(get(), get()) }
     viewModel { AnalyticsViewModel(get(), get(), get()) }
+    viewModel { SettingsViewModel(get(), get(), get()) }
     viewModel { params ->
         RecordDetailsViewModel(
             recordId = params.get(),

@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.room.RoomDatabase
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
+import com.techgv.vitalcare.core.util.AppInfo
+import com.techgv.vitalcare.data.backup.AndroidFileExporter
+import com.techgv.vitalcare.data.backup.FileExporter
 import com.techgv.vitalcare.data.local.VitalCareDatabase
 import com.techgv.vitalcare.data.local.databaseBuilder
 import org.koin.android.ext.koin.androidContext
@@ -16,5 +19,15 @@ actual val platformModule: Module = module {
         SharedPreferencesSettings(
             androidContext().getSharedPreferences("vitalcare_settings", Context.MODE_PRIVATE),
         )
+    }
+    single<FileExporter> { AndroidFileExporter(androidContext(), get()) }
+    single {
+        val context = androidContext()
+        val versionName = try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        } catch (_: Exception) {
+            null
+        }
+        AppInfo(versionName = versionName ?: "1.0")
     }
 }
