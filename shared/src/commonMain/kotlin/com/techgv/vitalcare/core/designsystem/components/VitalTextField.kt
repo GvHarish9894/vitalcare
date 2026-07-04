@@ -33,6 +33,7 @@ fun VitalTextField(
     singleLine: Boolean = true,
     minLines: Int = 1,
     enabled: Boolean = true,
+    readOnly: Boolean = false,
     onClick: (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
 ) {
@@ -48,7 +49,7 @@ fun VitalTextField(
             singleLine = singleLine,
             minLines = minLines,
             enabled = enabled,
-            readOnly = onClick != null,
+            readOnly = readOnly || onClick != null,
             trailingIcon = trailingIcon,
             shape = MaterialTheme.shapes.extraSmall,
             colors = TextFieldDefaults.colors(
