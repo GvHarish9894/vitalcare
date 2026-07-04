@@ -43,6 +43,13 @@ val FullDateFormat: kotlinx.datetime.format.DateTimeFormat<LocalDate> = LocalDat
     year()
 }
 
+/** "28 Jun" — compact chart axis labels. */
+val ShortDateFormat: kotlinx.datetime.format.DateTimeFormat<LocalDate> = LocalDate.Format {
+    day(padding = Padding.NONE)
+    char(' ')
+    monthName(MonthNames.ENGLISH_ABBREVIATED)
+}
+
 /** "08:30" — record rows and the time field. */
 val TimeFormat: kotlinx.datetime.format.DateTimeFormat<LocalTime> = LocalTime.Format {
     hour()

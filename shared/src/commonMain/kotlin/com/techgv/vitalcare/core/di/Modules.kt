@@ -12,12 +12,14 @@ import com.techgv.vitalcare.data.repository.VitalsRepositoryImpl
 import com.techgv.vitalcare.data.settings.AppSettings
 import com.techgv.vitalcare.domain.repository.VitalsRepository
 import com.techgv.vitalcare.domain.usecase.DeleteVitalRecord
+import com.techgv.vitalcare.domain.usecase.GetAnalytics
 import com.techgv.vitalcare.domain.usecase.GetHistory
 import com.techgv.vitalcare.domain.usecase.GetTodaySummary
 import com.techgv.vitalcare.domain.usecase.GetVitalRecord
 import com.techgv.vitalcare.domain.usecase.ObserveVitalRecord
 import com.techgv.vitalcare.domain.usecase.SaveVitalRecord
 import com.techgv.vitalcare.domain.validation.VitalsValidator
+import com.techgv.vitalcare.feature.analytics.AnalyticsViewModel
 import com.techgv.vitalcare.feature.dashboard.DashboardViewModel
 import com.techgv.vitalcare.feature.history.HistoryViewModel
 import com.techgv.vitalcare.feature.history.RecordDetailsViewModel
@@ -66,11 +68,13 @@ val useCaseModule: Module = module {
     factory { GetTodaySummary(get(), get(), get()) }
     factory { GetHistory(get(), get(), get()) }
     factory { ObserveVitalRecord(get()) }
+    factory { GetAnalytics(get(), get(), get()) }
 }
 
 val viewModelModule: Module = module {
     viewModel { DashboardViewModel(get(), get(), get()) }
     viewModel { HistoryViewModel(get()) }
+    viewModel { AnalyticsViewModel(get(), get(), get()) }
     viewModel { params ->
         RecordDetailsViewModel(
             recordId = params.get(),

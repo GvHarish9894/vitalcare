@@ -39,6 +39,7 @@ fun VitalTrendChart(
     modifier: Modifier = Modifier,
     startLabel: String? = null,
     endLabel: String? = null,
+    xRange: ClosedFloatingPointRange<Float>? = null,
 ) {
     val gridColor = MaterialTheme.colorScheme.outline
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -51,8 +52,8 @@ fun VitalTrendChart(
     val pad = ((yMaxRaw - yMinRaw) * 0.15f).coerceAtLeast(2f)
     val yMin = yMinRaw - pad
     val yMax = yMaxRaw + pad
-    val xMin = allPoints.minOfOrNull { it.x } ?: 0f
-    val xMax = allPoints.maxOfOrNull { it.x } ?: 1f
+    val xMin = xRange?.start ?: allPoints.minOfOrNull { it.x } ?: 0f
+    val xMax = xRange?.endInclusive ?: allPoints.maxOfOrNull { it.x } ?: 1f
 
     Canvas(modifier = modifier.fillMaxWidth().height(160.dp)) {
         val labelGutter = 34.dp.toPx()

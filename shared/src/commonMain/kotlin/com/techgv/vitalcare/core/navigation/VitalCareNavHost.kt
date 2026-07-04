@@ -14,6 +14,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import com.techgv.vitalcare.feature.analytics.AnalyticsScreen
 import com.techgv.vitalcare.feature.dashboard.DashboardScreen
 import com.techgv.vitalcare.feature.history.HistoryScreen
 import com.techgv.vitalcare.feature.history.RecordDetailsScreen
@@ -71,7 +72,7 @@ fun VitalCareNavHost(
             )
         }
         composable<AnalyticsRoute> {
-            PlaceholderScreen("Analytics")
+            AnalyticsScreen()
         }
         composable<SettingsRoute> {
             PlaceholderScreen("Settings")
