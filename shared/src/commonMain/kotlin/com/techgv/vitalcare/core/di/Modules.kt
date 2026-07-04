@@ -8,8 +8,15 @@ import com.techgv.vitalcare.core.util.CsvEncoder
 import com.techgv.vitalcare.core.util.DefaultDispatcherProvider
 import com.techgv.vitalcare.core.util.DispatcherProvider
 import com.techgv.vitalcare.data.local.VitalCareDatabase
+import com.techgv.vitalcare.data.repository.VitalsRepositoryImpl
 import com.techgv.vitalcare.data.settings.AppSettings
+import com.techgv.vitalcare.domain.repository.VitalsRepository
+import com.techgv.vitalcare.domain.usecase.DeleteVitalRecord
+import com.techgv.vitalcare.domain.usecase.GetVitalRecord
+import com.techgv.vitalcare.domain.usecase.SaveVitalRecord
+import com.techgv.vitalcare.domain.validation.VitalsValidator
 import kotlin.time.Clock
+import kotlinx.datetime.TimeZone
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -23,6 +30,7 @@ expect val platformModule: Module
 val coreModule: Module = module {
     single<DispatcherProvider> { DefaultDispatcherProvider() }
     single<Clock> { Clock.System }
+    single<TimeZone> { TimeZone.currentSystemDefault() }
     single { CsvEncoder() }
     single<Telemetry> { NoOpTelemetry() }
     single { AppSettings(get()) }
@@ -38,10 +46,16 @@ val databaseModule: Module = module {
     single { get<VitalCareDatabase>().vitalRecordDao() }
 }
 
-// Filled in as the corresponding layers are built (repositories C6+, use
-// cases C6+, view models C7+).
-val repositoryModule: Module = module { }
+val repositoryModule: Module = module {
+    single<VitalsRepository> { VitalsRepositoryImpl(get(), get()) }
+}
 
-val useCaseModule: Module = module { }
+val useCaseModule: Module = module {
+    factory { VitalsValidator(get(), get()) }
+    factory { SaveVitalRecord(get(), get(), get(), get()) }
+    factory { GetVitalRecord(get()) }
+    factory { DeleteVitalRecord(get(), get(), get()) }
+}
 
+// Filled in as the feature screens are built (C7+).
 val viewModelModule: Module = module { }
