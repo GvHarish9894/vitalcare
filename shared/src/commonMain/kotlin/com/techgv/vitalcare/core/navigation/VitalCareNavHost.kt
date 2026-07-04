@@ -5,12 +5,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
+import com.techgv.vitalcare.feature.vitals.RecordVitalsScreen
+import kotlinx.coroutines.launch
 
 /**
  * Single shared NavHost (D-008). Top-level tabs are siblings; Record Vitals
@@ -22,6 +27,11 @@ fun VitalCareNavHost(
     onShowSnackbar: suspend (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val scope = rememberCoroutineScope()
+    val showSnackbar: (String) -> Unit = remember(scope, onShowSnackbar) {
+        { message -> scope.launch { onShowSnackbar(message) } }
+    }
+
     NavHost(
         navController = navController,
         startDestination = DashboardRoute,
@@ -30,8 +40,13 @@ fun VitalCareNavHost(
         composable<DashboardRoute> {
             PlaceholderScreen("Dashboard")
         }
-        composable<RecordVitalsRoute> {
-            PlaceholderScreen("Record Vitals")
+        composable<RecordVitalsRoute> { entry ->
+            val route = entry.toRoute<RecordVitalsRoute>()
+            RecordVitalsScreen(
+                recordId = route.recordId,
+                onNavigateBack = { navController.popBackStack() },
+                showSnackbar = showSnackbar,
+            )
         }
         composable<HistoryRoute> {
             PlaceholderScreen("History")

@@ -15,9 +15,11 @@ import com.techgv.vitalcare.domain.usecase.DeleteVitalRecord
 import com.techgv.vitalcare.domain.usecase.GetVitalRecord
 import com.techgv.vitalcare.domain.usecase.SaveVitalRecord
 import com.techgv.vitalcare.domain.validation.VitalsValidator
+import com.techgv.vitalcare.feature.vitals.RecordVitalsViewModel
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import org.koin.core.module.Module
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
@@ -57,5 +59,14 @@ val useCaseModule: Module = module {
     factory { DeleteVitalRecord(get(), get(), get()) }
 }
 
-// Filled in as the feature screens are built (C7+).
-val viewModelModule: Module = module { }
+val viewModelModule: Module = module {
+    viewModel { params ->
+        RecordVitalsViewModel(
+            recordId = params.getOrNull(),
+            saveVitalRecord = get(),
+            getVitalRecord = get(),
+            clock = get(),
+            timeZone = get(),
+        )
+    }
+}

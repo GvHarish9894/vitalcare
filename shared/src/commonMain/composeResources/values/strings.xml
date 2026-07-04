@@ -129,6 +129,9 @@
     <string name="settings_version">Version</string>
     <string name="settings_source">Open-source project</string>
 
+    <!-- Errors -->
+    <string name="error_generic">Something went wrong</string>
+
     <!-- Content descriptions (NFR-6) -->
     <string name="cd_out_of_range">Out of typical range</string>
     <string name="cd_record_vitals">Record vitals</string>
