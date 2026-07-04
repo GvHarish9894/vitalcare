@@ -12,11 +12,15 @@ import com.techgv.vitalcare.data.repository.VitalsRepositoryImpl
 import com.techgv.vitalcare.data.settings.AppSettings
 import com.techgv.vitalcare.domain.repository.VitalsRepository
 import com.techgv.vitalcare.domain.usecase.DeleteVitalRecord
+import com.techgv.vitalcare.domain.usecase.GetHistory
 import com.techgv.vitalcare.domain.usecase.GetTodaySummary
 import com.techgv.vitalcare.domain.usecase.GetVitalRecord
+import com.techgv.vitalcare.domain.usecase.ObserveVitalRecord
 import com.techgv.vitalcare.domain.usecase.SaveVitalRecord
 import com.techgv.vitalcare.domain.validation.VitalsValidator
 import com.techgv.vitalcare.feature.dashboard.DashboardViewModel
+import com.techgv.vitalcare.feature.history.HistoryViewModel
+import com.techgv.vitalcare.feature.history.RecordDetailsViewModel
 import com.techgv.vitalcare.feature.vitals.RecordVitalsViewModel
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
@@ -60,10 +64,22 @@ val useCaseModule: Module = module {
     factory { GetVitalRecord(get()) }
     factory { DeleteVitalRecord(get(), get(), get()) }
     factory { GetTodaySummary(get(), get(), get()) }
+    factory { GetHistory(get(), get(), get()) }
+    factory { ObserveVitalRecord(get()) }
 }
 
 val viewModelModule: Module = module {
     viewModel { DashboardViewModel(get(), get(), get()) }
+    viewModel { HistoryViewModel(get()) }
+    viewModel { params ->
+        RecordDetailsViewModel(
+            recordId = params.get(),
+            observeVitalRecord = get(),
+            deleteVitalRecord = get(),
+            clock = get(),
+            timeZone = get(),
+        )
+    }
     viewModel { params ->
         RecordVitalsViewModel(
             recordId = params.getOrNull(),

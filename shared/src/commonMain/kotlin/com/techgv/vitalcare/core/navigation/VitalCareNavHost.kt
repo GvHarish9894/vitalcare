@@ -15,6 +15,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.techgv.vitalcare.feature.dashboard.DashboardScreen
+import com.techgv.vitalcare.feature.history.HistoryScreen
+import com.techgv.vitalcare.feature.history.RecordDetailsScreen
 import com.techgv.vitalcare.feature.vitals.RecordVitalsScreen
 import kotlinx.coroutines.launch
 
@@ -54,10 +56,19 @@ fun VitalCareNavHost(
             )
         }
         composable<HistoryRoute> {
-            PlaceholderScreen("History")
+            HistoryScreen(
+                onOpenDetails = { id -> navController.navigate(RecordDetailsRoute(id)) },
+                onRecordVitals = { navController.navigate(RecordVitalsRoute()) },
+            )
         }
-        composable<RecordDetailsRoute> {
-            PlaceholderScreen("Record Details")
+        composable<RecordDetailsRoute> { entry ->
+            val route = entry.toRoute<RecordDetailsRoute>()
+            RecordDetailsScreen(
+                recordId = route.recordId,
+                onNavigateBack = { navController.popBackStack() },
+                onEdit = { id -> navController.navigate(RecordVitalsRoute(id)) },
+                showSnackbar = showSnackbar,
+            )
         }
         composable<AnalyticsRoute> {
             PlaceholderScreen("Analytics")
