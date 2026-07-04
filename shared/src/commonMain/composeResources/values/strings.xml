@@ -61,7 +61,7 @@
     <string name="error_not_a_number">Enter a whole number</string>
     <string name="error_no_vitals">Enter at least one vital</string>
     <string name="error_remarks_too_long">Keep remarks under 500 characters</string>
-    <string name="error_time_future">Time can\'t be in the future</string>
+    <string name="error_time_future">Time can’t be in the future</string>
     <string name="snackbar_reading_saved">Reading saved ✓</string>
     <string name="discard_title">Discard changes?</string>
     <string name="discard_message">Your edits to this reading will be lost.</string>
@@ -89,9 +89,9 @@
     <string name="details_created">Recorded %1$s</string>
     <string name="details_updated">Last updated %1$s</string>
     <string name="details_delete_title">Delete this reading?</string>
-    <string name="details_delete_message">This can\'t be undone.</string>
+    <string name="details_delete_message">This can’t be undone.</string>
     <string name="snackbar_reading_deleted">Reading deleted</string>
-    <string name="details_read_only">Past readings can\'t be edited</string>
+    <string name="details_read_only">Past readings can’t be edited</string>
 
     <!-- Analytics (03 §3.9) -->
     <string name="analytics_title">Analytics</string>

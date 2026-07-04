@@ -142,6 +142,7 @@ private fun LatestReadingTile(latest: VitalRecord?, onRecordNow: () -> Unit) {
                 )
             }
             Spacer(Modifier.height(14.dp))
+            // Bento arrangement: two values side by side, wide BP below (03 §4.4).
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 VitalValueDisplay(
                     value = latest.spo2?.toString() ?: "—",
@@ -157,18 +158,18 @@ private fun LatestReadingTile(latest: VitalRecord?, onRecordNow: () -> Unit) {
                     outOfRange = latest.isHeartRateOutOfRange(),
                     modifier = Modifier.weight(1f),
                 )
-                VitalValueDisplay(
-                    value = if (latest.systolic != null && latest.diastolic != null) {
-                        "${latest.systolic}/${latest.diastolic}"
-                    } else {
-                        "—"
-                    },
-                    unit = stringResource(Res.string.unit_mmhg),
-                    label = stringResource(Res.string.vital_blood_pressure),
-                    outOfRange = latest.isBloodPressureOutOfRange(),
-                    modifier = Modifier.weight(1f),
-                )
             }
+            Spacer(Modifier.height(14.dp))
+            VitalValueDisplay(
+                value = if (latest.systolic != null && latest.diastolic != null) {
+                    "${latest.systolic}/${latest.diastolic}"
+                } else {
+                    "—"
+                },
+                unit = stringResource(Res.string.unit_mmhg),
+                label = stringResource(Res.string.vital_blood_pressure),
+                outOfRange = latest.isBloodPressureOutOfRange(),
+            )
         }
     }
 }
