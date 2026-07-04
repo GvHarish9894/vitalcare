@@ -3,18 +3,24 @@
 Everything the MVP must do, stated precisely enough to build and test against.
 Screens and visuals live in [03-ui-ux-design.md](03-ui-ux-design.md); this doc is *what*, that doc is *how it looks*.
 
+> **Scope (2026-07-04):** VitalCare is a **local-only, no-account** app (D-018). You open it and
+> record — no sign-up, no login. Backing up is **optional** (D-020): export to CSV, or connect
+> your own Google Drive. See [02-design-decisions.md](02-design-decisions.md) D-018…D-027.
+
 ## 1. Feature list (MVP)
 
 | # | Feature | Summary |
 |---|---|---|
-| F1 | Authentication | Email/password register, login, forgot password, logout, session persistence |
-| F2 | Dashboard | Today's summary, latest reading, sync status, quick actions |
-| F3 | Record Vitals | Validated entry form; save-local-first |
+| F2 | Dashboard | Today's summary, latest reading, quick actions |
+| F3 | Record Vitals | Validated entry form; saved locally, instantly |
 | F4 | History | All past records grouped by date; search + filter |
 | F5 | Record Details | Full view of one record; edit/delete if today's |
 | F6 | Analytics | Daily / weekly / monthly trend charts per vital |
-| F7 | Offline Sync | Background upload of pending records; retry; status surfaced in UI |
-| F8 | Settings | Profile, appearance (dark mode), sync info, logout |
+| F7 | Backup & Export | Optional CSV export and Google Drive backup/restore |
+| F8 | Settings | Profile name, appearance (dark mode), backup controls, about |
+
+*(F1 Authentication was removed — the app has no accounts, D-018. Numbering is kept for
+continuity with the roadmap.)*
 
 ## 2. Vital fields
 
@@ -39,43 +45,37 @@ BP requires both systolic and diastolic together. Empty vitals are stored as nul
 | BR-2 | **Only today's records can be edited or deleted.** "Today" = record's date equals the current date in the device's local timezone. |
 | BR-3 | Past records are strictly read-only in the UI (no edit/delete affordances shown). |
 | BR-4 | Record date is set automatically at creation and can never be changed. |
-| BR-5 | Every write (create/edit/delete) goes to the local DB first and marks the record for sync. Deletes of already-synced records become tombstones until the deletion reaches Firestore (see 06-data-and-sync.md §6). |
+| BR-5 | Every write (create/edit/delete) goes to the local DB and is applied immediately. Deletes are permanent hard deletes (D-025) — there is no undo and no cloud propagation. |
 | BR-6 | Validation happens before save; a record failing validation is never persisted. |
-| BR-7 | One account = one patient. `patientId` is the Firebase Auth UID. |
+| BR-7 | The app has a single local user; there is no account and no `patientId` (D-019). |
 
 ## 4. Functional requirements
-
-### F1 Authentication (details in [05-authentication.md](05-authentication.md))
-- FR-A1: Register with name, email, password (min 8 chars).
-- FR-A2: Login with email + password.
-- FR-A3: Forgot password → Firebase sends reset email.
-- FR-A4: Session persists across app restarts; user lands on Dashboard while logged in.
-- FR-A5: Logout returns to Login and stops sync. Local data handling on logout: see D-015.
-- FR-A6: After first login, the app is fully usable offline (auth state cached).
 
 ### F2 Dashboard
 - FR-D1: Show count of today's records.
 - FR-D2: Show the latest reading (all vitals + time) or an empty state if none today.
-- FR-D3: Show pending-sync count and overall sync state (All synced / N pending / Sync failed / Offline).
+- FR-D3: (Optional, only when Drive is connected) show a subtle backup hint: last backup time,
+  or "unbacked-up changes" when `countSince(lastBackupAt) > 0`. No sync/pending status exists.
 - FR-D4: Quick actions: Record Vitals (primary), History, Analytics.
 - FR-D5: Data updates reactively (Flow from Room) — no manual refresh needed.
 
 ### F3 Record Vitals
 - FR-R1: Form per §2 field table; inline validation errors on blur and on save.
-- FR-R2: Save flow: **validate → insert into Room (`syncStatus = PENDING`) → update UI instantly → enqueue background sync**.
+- FR-R2: Save flow: **validate → insert into Room → update UI instantly**. No network involvement.
 - FR-R3: On successful save, return to Dashboard (or previous screen) with confirmation.
-- FR-R4: Editing (today only) pre-fills the form; save updates `updatedAt` and resets record to `PENDING`.
+- FR-R4: Editing (today only) pre-fills the form; save updates `updatedAt`.
 
 ### F4 History
 - FR-H1: List all records, newest first, grouped under date headers (Today / Yesterday / `12 May 2026`).
-- FR-H2: Each row shows time, the recorded vitals compactly, and a sync-status indicator.
+- FR-H2: Each row shows time and the recorded vitals compactly. (No per-record sync indicator — there is no sync.)
 - FR-H3: Filter chips: Today / This Week / This Month / All (default All).
 - FR-H4: Search matches remarks text (Proposed: also matches exact vital values).
 - FR-H5: Tapping a row opens Record Details.
+- FR-H6: History overflow offers **Export to CSV** for the current filter scope (F7).
 
 ### F5 Record Details
-- FR-RD1: Show all fields of one record plus createdAt / updatedAt / sync status.
-- FR-RD2: If the record is today's: show Edit and Delete actions (BR-2). Delete requires confirmation.
+- FR-RD1: Show all fields of one record plus createdAt / updatedAt.
+- FR-RD2: If the record is today's: show Edit and Delete actions (BR-2). Delete requires confirmation and is permanent (BR-5).
 
 ### F6 Analytics
 - FR-AN1: Line/trend chart per vital: SpO₂, Heart Rate, BP (systolic + diastolic on one chart).
@@ -83,31 +83,35 @@ BP requires both systolic and diastolic together. Empty vitals are stored as nul
 - FR-AN3: Show min / max / average for the selected range.
 - FR-AN4: Empty state when the range has no data.
 
-### F7 Offline Sync (details in [06-data-and-sync.md](06-data-and-sync.md))
-- FR-S1: All `PENDING`/`FAILED` records upload automatically when the device is online.
-- FR-S2: Sync runs in the background (WorkManager / BGTaskScheduler) and opportunistically on app foreground.
-- FR-S3: Failed uploads retry with exponential backoff; permanent failures surface as `FAILED` with a manual "Retry sync" affordance in Settings/Dashboard.
-- FR-S4: Conflict resolution: last-write-wins by `updatedAt`.
+### F7 Backup & Export (details in [05-backup-and-export.md](05-backup-and-export.md))
+- FR-B1: **CSV export** — export all or filtered records to a `.csv` file via the platform save/share sheet. No account, no network (05 §3).
+- FR-B2: **Connect Google Drive** — optional; runs Google authorization for the Drive scope only (D-021). The app is fully usable without it.
+- FR-B3: **Back up now** — upload a full JSON snapshot to the user's Drive `appDataFolder` (05 §5); records the last-backup time.
+- FR-B4: **Auto-backup** — user picks Off (default) / Daily / Weekly / Monthly; scheduled via WorkManager / BGTaskScheduler (D-022).
+- FR-B5: **Restore from Drive** — download the backup and **merge** it in (non-destructive, newer-wins, D-024); never wipes local data.
+- FR-B6: **Disconnect Drive** — revokes the token, clears it from secure storage, cancels auto-backup.
+- FR-B7: (Proposed, D-026) optional password-encrypted backup; default off.
 
 ### F8 Settings
-- FR-SE1: Show profile (name, email).
+- FR-SE1: Profile — optional local display name, editable (D-019).
 - FR-SE2: Theme: System / Light / Dark (Proposed default: System).
-- FR-SE3: Sync section: last successful sync time, pending count, manual "Sync now".
-- FR-SE4: Logout (confirmation dialog).
-- FR-SE5: About: app version.
+- FR-SE3: Backup & Export section — CSV export; Drive connect/disconnect; Back up now; Restore; auto-backup cadence; last-backup time (F7).
+- FR-SE4: About — app version; link to the open-source project.
+- FR-SE5: Privacy — "Share anonymous usage & crash data" toggle controlling Firebase Analytics + Crashlytics; on by default, PHI-free either way (D-028/D-029).
 
 ## 5. Non-functional requirements
 
 | ID | Requirement | Target |
 |---|---|---|
 | NFR-1 | Save latency (tap Save → record visible in UI) | < 200 ms |
-| NFR-2 | Cold start to Dashboard (logged in) | < 2.5 s on mid-range device |
-| NFR-3 | Offline capability | 100 % of record/read features work with no network, indefinitely |
+| NFR-2 | Cold start to Dashboard | < 2.5 s on mid-range device |
+| NFR-3 | Offline capability | 100 % of record/read/analytics features work with no network, indefinitely, forever (never any network dependency for core use) |
 | NFR-4 | Data durability | A locally saved record survives app kill, reboot, and OS storage pressure |
-| NFR-5 | Sync convergence | Pending records reach Firestore within 1 min of connectivity (foreground) / next scheduled slot (background) |
+| NFR-5 | Backup integrity | A backup round-trips losslessly (export → restore reproduces every record); restore is idempotent and non-destructive (D-024) |
 | NFR-6 | Accessibility | Touch targets ≥ 48 dp; supports dynamic type; passes basic TalkBack/VoiceOver labeling |
 | NFR-7 | Localization | English-only MVP, but **all user-facing strings via Compose resources** — no hardcoded literals |
-| NFR-8 | Privacy | Health data never leaves the device except to the user's own Firestore documents |
+| NFR-8 | Privacy | Health data never leaves the device unless the user explicitly exports it (CSV) or connects Drive; Drive data goes only to the user's own account (D-020/D-021). The only default outbound data is anonymous, **PHI-free** Analytics/Crashlytics telemetry (D-028), user-disableable (D-029) |
+| NFR-9 | No-secret build | The full app builds and runs with no secret configuration and no backend for user data (D-027); telemetry config is committed (client identifiers) and the app still runs without it |
 
 ## 6. Acceptance criteria style
 
