@@ -12,9 +12,11 @@ import com.techgv.vitalcare.data.repository.VitalsRepositoryImpl
 import com.techgv.vitalcare.data.settings.AppSettings
 import com.techgv.vitalcare.domain.repository.VitalsRepository
 import com.techgv.vitalcare.domain.usecase.DeleteVitalRecord
+import com.techgv.vitalcare.domain.usecase.GetTodaySummary
 import com.techgv.vitalcare.domain.usecase.GetVitalRecord
 import com.techgv.vitalcare.domain.usecase.SaveVitalRecord
 import com.techgv.vitalcare.domain.validation.VitalsValidator
+import com.techgv.vitalcare.feature.dashboard.DashboardViewModel
 import com.techgv.vitalcare.feature.vitals.RecordVitalsViewModel
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
@@ -57,9 +59,11 @@ val useCaseModule: Module = module {
     factory { SaveVitalRecord(get(), get(), get(), get()) }
     factory { GetVitalRecord(get()) }
     factory { DeleteVitalRecord(get(), get(), get()) }
+    factory { GetTodaySummary(get(), get(), get()) }
 }
 
 val viewModelModule: Module = module {
+    viewModel { DashboardViewModel(get(), get(), get()) }
     viewModel { params ->
         RecordVitalsViewModel(
             recordId = params.getOrNull(),
