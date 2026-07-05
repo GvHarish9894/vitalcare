@@ -15,10 +15,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <!-- adjustResize ensures the window resizes when the IME shows;
+             edge-to-edge additionally requires Compose to consume IME insets
+             (imePadding on scrollable/keyboard-hosting screens). -->
         <activity
             android:exported="true"
             android:launchMode="singleTop"
-            android:name=".MainActivity">
+            android:name=".MainActivity"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

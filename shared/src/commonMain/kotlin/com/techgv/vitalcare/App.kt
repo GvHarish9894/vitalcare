@@ -9,6 +9,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -95,7 +96,13 @@ fun App() {
                     exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
                 ) {
                     Box(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        // navigationBarsPadding floats the pill above the
+                        // gesture-nav handle; Scaffold does not auto-add
+                        // system-bar insets to custom bottomBar composables.
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(bottom = 12.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         BottomNavBar(

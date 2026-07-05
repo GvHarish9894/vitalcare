@@ -1,6 +1,7 @@
 package com.techgv.vitalcare
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -38,6 +39,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Scaffold + custom floating pill bottom bar — drop the system
+        // scrim so our indigo bar reaches the bottom edge cleanly (edge-to-edge skill).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
 
         driveAuthorizer.resolutionLauncher = { pendingIntent ->
             authorizationLauncher.launch(IntentSenderRequest.Builder(pendingIntent).build())
