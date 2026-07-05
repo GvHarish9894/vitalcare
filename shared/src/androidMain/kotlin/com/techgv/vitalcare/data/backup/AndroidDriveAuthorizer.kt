@@ -9,6 +9,7 @@ import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
 import com.techgv.vitalcare.core.util.AppError
 import com.techgv.vitalcare.core.util.AppResult
+import com.techgv.vitalcare.core.util.debugLog
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import com.techgv.vitalcare.domain.backup.DriveConfig
 import io.ktor.client.HttpClient
@@ -72,6 +73,7 @@ class AndroidDriveAuthorizer(
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (t: Exception) {
+            debugLog(TAG, "authorize failed — ${t::class.simpleName}: ${t.message}")
             AppResult.Failure(AppError.DriveAuth)
         }
     }
@@ -84,8 +86,12 @@ class AndroidDriveAuthorizer(
             val authorization =
                 Identity.getAuthorizationClient(context).getAuthorizationResultFromIntent(data)
             authorization.accessToken?.let { AppResult.Success(it) }
-                ?: AppResult.Failure(AppError.DriveAuth)
+                ?: run {
+                    debugLog(TAG, "consent returned no access token (denied / not a test user)")
+                    AppResult.Failure(AppError.DriveAuth)
+                }
         } catch (t: Exception) {
+            debugLog(TAG, "consent result failed — ${t::class.simpleName}: ${t.message}")
             AppResult.Failure(AppError.DriveAuth)
         }
         continuation.resume(result)
@@ -113,6 +119,7 @@ class AndroidDriveAuthorizer(
 
     private companion object {
         const val DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file"
+        const val TAG = "VitalCareDrive"
     }
 }
 
