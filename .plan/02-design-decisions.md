@@ -183,6 +183,12 @@ relevant phase) · `Amended by D-xxx` (still holds, but modified) · `Superseded
 **Primary color = indigo `#4849A1`** (chosen 2026-07-04; supersedes both the old `#2563EB` blue and the interim ink-black proposal). Still `Proposed`: display font = **Plus Jakarta Sans**; the exact pastel/tint hexes in 03 §4.1.
 **Rejected:** copying the reference's low-contrast pastel-on-pastel text (fails elderly accessibility); a full neumorphic treatment (low contrast, poor a11y); dropping Material 3 as the toolkit (unnecessary — theme it instead).
 
+## D-031 — License: Apache-2.0 — `Proposed`
+**Context (2026-07-05):** the open-source release phase (09 Phase 9) requires a LICENSE file; none had been chosen.
+**Decision (proposed):** license the project under **Apache License 2.0** — the default for the Kotlin/Android ecosystem (Kotlin, AndroidX, Compose are all Apache-2.0), permissive for forks and app-store distribution, and includes an explicit patent grant. Copyright header: "VitalCare Contributors". Bundled Plus Jakarta Sans stays under its own OFL-1.1 (`shared/src/commonMain/composeResources/font/OFL.txt`).
+**Owner action:** confirm/veto before publishing the repository — a license choice is the maintainer's call; swap the LICENSE file if MIT/GPL is preferred.
+**Rejected (as defaults):** MIT (no patent grant); GPLv3 (copyleft would constrain app-store forks unnecessarily for a personal-health tool).
+
 ---
 
 ## How to add a decision
