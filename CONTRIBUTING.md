@@ -45,7 +45,11 @@ it. To develop against it you need your own OAuth client (never commit one):
    package `com.techgv.vitalcare` and your debug signing SHA-1
    (`./gradlew :androidApp:signingReport`).
 2. Enable the **Google Drive API** for the project.
-3. Add `vitalcare.drive.enabled=true` to `local.properties`.
+3. On the **OAuth consent screen**, add the scope
+   `https://www.googleapis.com/auth/drive.appdata` (the app stores its backup
+   in Drive's hidden `appDataFolder`), and add your Google account under
+   **Test users** while the app is unverified.
+4. Add `vitalcare.drive.enabled=true` to `local.properties`.
 
 iOS additionally needs the GoogleSignIn SDK added in Xcode plus an iOS OAuth
 client; pass `driveEnabled: true` to `KoinIOSKt.doInitKoin` when wiring it.

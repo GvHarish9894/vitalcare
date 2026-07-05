@@ -47,7 +47,7 @@ class AndroidDriveAuthorizer(
     override suspend fun authorize(interactive: Boolean): AppResult<String> {
         if (!isAvailable) return AppResult.Failure(AppError.DriveAuth)
         val request = AuthorizationRequest.builder()
-            .setRequestedScopes(listOf(Scope(DRIVE_FILE_SCOPE)))
+            .setRequestedScopes(listOf(Scope(DRIVE_APPDATA_SCOPE)))
             .build()
         return try {
             val result = Identity.getAuthorizationClient(context).authorize(request).await()
@@ -118,7 +118,10 @@ class AndroidDriveAuthorizer(
     }
 
     private companion object {
-        const val DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file"
+        // appDataFolder (D-023) requires drive.appdata — `drive.file` can't
+        // reach the hidden app folder. This scope is also strictly more
+        // private: it can ONLY see our own app data, never the user's files.
+        const val DRIVE_APPDATA_SCOPE = "https://www.googleapis.com/auth/drive.appdata"
         const val TAG = "VitalCareDrive"
     }
 }
