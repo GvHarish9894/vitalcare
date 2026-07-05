@@ -33,10 +33,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.techgv.vitalcare.core.designsystem.components.SectionHeader
 import com.techgv.vitalcare.core.designsystem.components.VitalTextField
+import com.techgv.vitalcare.core.util.AppLinks
 import com.techgv.vitalcare.domain.model.HistoryFilter
 import com.techgv.vitalcare.domain.model.ThemePreference
 import org.jetbrains.compose.resources.stringResource
@@ -62,6 +64,7 @@ import vitalcare.shared.generated.resources.settings_privacy_note
 import vitalcare.shared.generated.resources.settings_privacy_toggle
 import vitalcare.shared.generated.resources.settings_profile
 import vitalcare.shared.generated.resources.settings_profile_name
+import vitalcare.shared.generated.resources.settings_source
 import vitalcare.shared.generated.resources.settings_theme
 import vitalcare.shared.generated.resources.settings_title
 import vitalcare.shared.generated.resources.settings_version
@@ -155,6 +158,7 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
         }
 
         SectionHeader(stringResource(Res.string.settings_about))
+        val uriHandler = LocalUriHandler.current
         SettingsCard {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp),
@@ -169,6 +173,25 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            Surface(
+                onClick = { uriHandler.openUri(AppLinks.REPOSITORY) },
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                ) {
+                    Text(
+                        text = stringResource(Res.string.settings_source),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = AppLinks.REPOSITORY.removePrefix("https://"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         Spacer(Modifier.height(24.dp))

@@ -23,4 +23,7 @@ interface VitalsRepository {
     // Snapshot reads for CSV export (06 §3).
     suspend fun getAll(): AppResult<List<VitalRecord>>
     suspend fun getByDateRange(from: LocalDate, to: LocalDate): AppResult<List<VitalRecord>>
+
+    /** Restore-merge writes (D-024) — upsert only, never deletes. */
+    suspend fun upsertAll(records: List<VitalRecord>): AppResult<Unit>
 }

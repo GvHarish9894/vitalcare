@@ -24,7 +24,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -99,11 +101,16 @@ fun RecordVitalsScreen(
     RecordVitalsContent(uiState = uiState, onEvent = viewModel::onEvent)
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun RecordVitalsContent(
     uiState: RecordVitalsUiState,
     onEvent: (RecordVitalsEvent) -> Unit,
 ) {
+    // System back gets the same discard guard as the ✕ button (03 §3.6);
+    // when pristine the handler is disabled and back pops normally.
+    BackHandler(enabled = uiState.isDirty) { onEvent(RecordVitalsEvent.CloseClicked) }
+
     Column(modifier = Modifier.fillMaxSize().imePadding()) {
         RecordVitalsTopBar(isEdit = uiState.isEdit, onClose = { onEvent(RecordVitalsEvent.CloseClicked) })
 

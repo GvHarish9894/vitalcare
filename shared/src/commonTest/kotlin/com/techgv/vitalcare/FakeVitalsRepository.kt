@@ -61,4 +61,10 @@ class FakeVitalsRepository : VitalsRepository {
             .filter { it.date in from..to }
             .sortedWith(compareBy<VitalRecord> { it.date }.thenBy { it.time }),
     )
+
+    override suspend fun upsertAll(records: List<VitalRecord>): AppResult<Unit> {
+        if (failWrites) return AppResult.Failure(AppError.Unknown())
+        this.records.update { it + records.associateBy { record -> record.id } }
+        return AppResult.Success(Unit)
+    }
 }

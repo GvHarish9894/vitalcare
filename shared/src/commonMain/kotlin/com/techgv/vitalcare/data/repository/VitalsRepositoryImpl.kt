@@ -57,6 +57,10 @@ class VitalsRepositoryImpl(
         dao.getByDateRange(from.toString(), to.toString()).map { it.toDomain() }
     }
 
+    override suspend fun upsertAll(records: List<VitalRecord>): AppResult<Unit> = guard {
+        dao.upsertAll(records.map { it.toEntity() })
+    }
+
     /** Exceptions stop at the data layer and become [AppError]s (04 §8). */
     private suspend fun <T> guard(block: suspend () -> T): AppResult<T> =
         withContext(dispatchers.io) {

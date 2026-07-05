@@ -16,6 +16,18 @@ sealed interface AppError {
     /** The operation is not permitted by a business rule (e.g. editing a past record, BR-2). */
     data object NotAllowed : AppError
 
+    /** Network unreachable or request failed — only Drive backup/restore ever sees this (05 §9). */
+    data object Network : AppError
+
+    /** Drive authorization missing/expired — user needs to reconnect (D-021). */
+    data object DriveAuth : AppError
+
+    /** Backup JSON could not be parsed. */
+    data object CorruptBackup : AppError
+
+    /** Backup written by a newer app version (schemaVersion ahead of ours, D-023). */
+    data class UnsupportedBackup(val schemaVersion: Int) : AppError
+
     data class Unknown(val cause: Throwable? = null) : AppError
 }
 
