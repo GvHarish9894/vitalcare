@@ -38,6 +38,10 @@ object ReminderSlots {
      * Whether a reminder should actually fire at [now]. The scheduler only
      * aims at slot times; this is the final gate (quiet hours after clock
      * changes, foreground suppression, skip-when-recorded).
+     *
+     * Skip-when-recorded uses a rolling window — any reading within the last
+     * interval suppresses — so someone who records at 11:58 is not pinged by
+     * the 12:00 slot (03 §1: never nag).
      */
     fun shouldNotify(
         now: LocalDateTime,
@@ -48,10 +52,9 @@ object ReminderSlots {
         if (!preferences.enabled) return false
         if (isAppForeground) return false // user is already in the app — never nag (03 §1)
         if (!isWithinWindow(now.time, preferences)) return false
-        if (preferences.skipIfRecorded && lastRecordedAt != null &&
-            lastRecordedAt >= currentSlotStart(now, preferences) && lastRecordedAt <= now
-        ) {
-            return false
+        if (preferences.skipIfRecorded && lastRecordedAt != null) {
+            val windowStart = now.plusMinutesCivil(-preferences.intervalHours * 60)
+            if (lastRecordedAt >= windowStart && lastRecordedAt <= now) return false
         }
         return true
     }
@@ -70,18 +73,6 @@ object ReminderSlots {
             }
             .filter { it > now }
             .min()
-    }
-
-    /** Start of the slot [now] falls in (assumes [now] is within the window). */
-    internal fun currentSlotStart(
-        now: LocalDateTime,
-        preferences: ReminderPreferences,
-    ): LocalDateTime {
-        val windowStart = windowStartFor(now, preferences)
-        val minutesIntoWindow = now.minutesSinceCivil(windowStart)
-        val interval = preferences.intervalHours * 60
-        val slotIndex = (minutesIntoWindow / interval).coerceAtLeast(0)
-        return windowStart.plusMinutesCivil(slotIndex * interval)
     }
 
     internal fun isWithinWindow(time: LocalTime, preferences: ReminderPreferences): Boolean {
@@ -115,16 +106,6 @@ object ReminderSlots {
         }
     }
 
-    /** Window-instance start containing [now] (may be yesterday for overnight windows). */
-    private fun windowStartFor(
-        now: LocalDateTime,
-        preferences: ReminderPreferences,
-    ): LocalDateTime {
-        val startsYesterday = now.time < preferences.activeFrom
-        val date = if (startsYesterday) now.date.plus(-1, DateTimeUnit.DAY) else now.date
-        return date.atTime(preferences.activeFrom)
-    }
-
     private fun LocalTime.toMinutes(): Int = hour * 60 + minute
 
     private fun minutesOfDayToTime(minutesOfDay: Int): LocalTime =
@@ -136,10 +117,5 @@ object ReminderSlots {
         val dayCarry = total.floorDiv(DAY_MINUTES)
         val minutesOfDay = total.mod(DAY_MINUTES)
         return date.plus(dayCarry, DateTimeUnit.DAY).atTime(minutesOfDayToTime(minutesOfDay))
-    }
-
-    private fun LocalDateTime.minutesSinceCivil(other: LocalDateTime): Int {
-        val dayDiff = other.date.daysUntil(date)
-        return dayDiff * DAY_MINUTES + (time.toMinutes() - other.time.toMinutes())
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.MonitorHeart
+import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +45,8 @@ import vitalcare.shared.generated.resources.dashboard_backed_up_days_ago
 import vitalcare.shared.generated.resources.dashboard_backed_up_today
 import vitalcare.shared.generated.resources.dashboard_empty_title
 import vitalcare.shared.generated.resources.dashboard_unbacked_changes
+import vitalcare.shared.generated.resources.reminder_permission_blocked_action
+import vitalcare.shared.generated.resources.reminder_permission_blocked_title
 import vitalcare.shared.generated.resources.dashboard_latest_reading
 import vitalcare.shared.generated.resources.dashboard_reading_at
 import vitalcare.shared.generated.resources.dashboard_reading_count_one
@@ -89,6 +92,10 @@ fun DashboardScreen(
             )
         }
 
+        if (uiState.reminderPermissionBlocked) {
+            ReminderPermissionBanner(onClick = viewModel::openNotificationSettings)
+        }
+
         LatestReadingTile(latest = uiState.latest, onRecordNow = onRecordVitals)
         TodayTile(count = uiState.count, times = uiState.times, onClick = onOpenHistory)
 
@@ -111,6 +118,30 @@ fun DashboardScreen(
         }
         BackupHintLine(hint = uiState.backupHint, onOpenSettings = onOpenSettings)
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+/**
+ * Shown ONLY when reminders are on but notifications are blocked at the OS
+ * level (D-032) — tapping opens the app's system notification settings.
+ */
+@Composable
+private fun ReminderPermissionBanner(onClick: () -> Unit) {
+    BentoTile(
+        tint = VitalCareTheme.colors.tintPeach,
+        icon = Icons.Rounded.NotificationsOff,
+        onClick = onClick,
+    ) {
+        Text(
+            text = stringResource(Res.string.reminder_permission_blocked_title),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(Res.string.reminder_permission_blocked_action),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }
 

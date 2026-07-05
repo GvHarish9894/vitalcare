@@ -9,9 +9,14 @@ import com.techgv.vitalcare.data.backup.IosBackupScheduler
 import com.techgv.vitalcare.data.backup.IosFileExporter
 import com.techgv.vitalcare.data.local.VitalCareDatabase
 import com.techgv.vitalcare.data.local.databaseBuilder
+import com.techgv.vitalcare.data.reminders.IosReminderPermission
+import com.techgv.vitalcare.data.reminders.IosReminderScheduler
+import com.techgv.vitalcare.data.reminders.ReminderNotificationDelegate
 import com.techgv.vitalcare.domain.backup.BackupScheduler
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import com.techgv.vitalcare.domain.backup.UnavailableDriveAuthorizer
+import com.techgv.vitalcare.domain.reminders.ReminderPermission
+import com.techgv.vitalcare.domain.reminders.ReminderScheduler
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import platform.Foundation.NSBundle
@@ -26,6 +31,9 @@ actual val platformModule: Module = module {
     single<DriveAuthorizer> { UnavailableDriveAuthorizer() }
     single { IosBackupScheduler() }
     single<BackupScheduler> { get<IosBackupScheduler>() }
+    single<ReminderPermission> { IosReminderPermission() }
+    single<ReminderScheduler> { IosReminderScheduler() }
+    single { ReminderNotificationDelegate(get()) }
     single {
         val versionName = NSBundle.mainBundle
             .objectForInfoDictionaryKey("CFBundleShortVersionString") as? String

@@ -1,5 +1,7 @@
 package com.techgv.vitalcare.core.util
 
+import kotlin.concurrent.Volatile
+
 /**
  * Whether the app UI is currently in front of the user. Set by the platform
  * entry points (MainActivity onResume/onPause; iOS suppresses foreground

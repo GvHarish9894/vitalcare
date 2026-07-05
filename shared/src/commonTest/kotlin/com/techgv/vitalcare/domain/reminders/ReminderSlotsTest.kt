@@ -112,17 +112,21 @@ class ReminderSlotsTest {
     }
 
     @Test
-    fun recordInCurrentSlotSuppresses() {
-        // now = 10:30 → current slot started 10:00; a 10:05 reading suppresses.
+    fun recordWithinRollingIntervalSuppresses() {
+        // Interval 2h, now 10:30 → any reading since 08:30 suppresses.
         assertFalse(
             ReminderSlots.shouldNotify(at(10, 30), prefs(), at(10, 5), isAppForeground = false),
+        )
+        // Recording at 11:58 must suppress a 12:00 reminder (never nag).
+        assertFalse(
+            ReminderSlots.shouldNotify(at(12, 0), prefs(), at(11, 58), isAppForeground = false),
         )
     }
 
     @Test
-    fun recordInPreviousSlotDoesNotSuppress() {
+    fun recordOlderThanIntervalDoesNotSuppress() {
         assertTrue(
-            ReminderSlots.shouldNotify(at(10, 30), prefs(), at(9, 55), isAppForeground = false),
+            ReminderSlots.shouldNotify(at(10, 30), prefs(), at(8, 15), isAppForeground = false),
         )
     }
 

@@ -14,6 +14,7 @@ fun initKoin(config: KoinAppDeclaration? = null) {
             repositoryModule,
             useCaseModule,
             backupModule,
+            reminderModule,
             viewModelModule,
         )
     }

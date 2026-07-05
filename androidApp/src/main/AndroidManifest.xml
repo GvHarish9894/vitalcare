@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Vitals reminders (D-032) — requested at runtime only when the user
+         enables the reminder toggle, never at app start. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- allowBackup=false: health data must not leave the device via OS
          backup transports (§07/3); the app has its own opt-in backup. -->
     <application
@@ -13,6 +17,7 @@
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <activity
             android:exported="true"
+            android:launchMode="singleTop"
             android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

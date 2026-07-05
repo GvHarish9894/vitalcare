@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.techgv.vitalcare.core.util.todayLocal
 import com.techgv.vitalcare.domain.model.VitalRecord
+import com.techgv.vitalcare.domain.reminders.ReminderPermission
+import com.techgv.vitalcare.domain.reminders.ReminderPermissionMonitor
+import com.techgv.vitalcare.domain.reminders.ReminderPermissionStatus
+import com.techgv.vitalcare.domain.repository.SettingsRepository
 import com.techgv.vitalcare.domain.usecase.GetTodaySummary
 import com.techgv.vitalcare.domain.usecase.ObserveBackupStatus
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,11 +36,16 @@ data class DashboardUiState(
     val latest: VitalRecord? = null,
     val times: List<LocalTime> = emptyList(),
     val backupHint: BackupHint? = null,
+    /** D-032: reminders enabled but notifications blocked at the OS level. */
+    val reminderPermissionBlocked: Boolean = false,
 )
 
 class DashboardViewModel(
     getTodaySummary: GetTodaySummary,
     observeBackupStatus: ObserveBackupStatus,
+    settingsRepository: SettingsRepository,
+    reminderPermissionMonitor: ReminderPermissionMonitor,
+    private val reminderPermission: ReminderPermission,
     clock: Clock,
     private val timeZone: TimeZone,
 ) : ViewModel() {
@@ -46,7 +55,9 @@ class DashboardViewModel(
     val uiState: StateFlow<DashboardUiState> = combine(
         getTodaySummary(),
         observeBackupStatus(),
-    ) { summary, backup ->
+        settingsRepository.reminderPreferences,
+        reminderPermissionMonitor.status,
+    ) { summary, backup, reminders, permissionStatus ->
         DashboardUiState(
             date = today,
             isLoading = false,
@@ -58,12 +69,16 @@ class DashboardViewModel(
                 backup.unbackedCount > 0 || backup.lastBackupAt == 0L -> BackupHint.Pending
                 else -> BackupHint.BackedUp(daysAgo = daysSince(backup.lastBackupAt))
             },
+            reminderPermissionBlocked =
+                reminders.enabled && permissionStatus == ReminderPermissionStatus.DENIED,
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = DashboardUiState(date = today),
     )
+
+    fun openNotificationSettings() = reminderPermission.openSystemSettings()
 
     private fun daysSince(epochMillis: Long): Int =
         Instant.fromEpochMilliseconds(epochMillis)
