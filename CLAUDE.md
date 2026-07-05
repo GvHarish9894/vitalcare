@@ -4,17 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-- **Product:** "VitalCare", an **offline-first patient-vitals app** — record vitals, save locally first, sync to Firestore when online, show history/analytics.
+- **Product:** "VitalCare", a **local-first, no-account patient-vitals app** — record vitals, save on-device, show history/analytics. **No login/signup and no backend for user data** (D-018). Backing up is **optional**: CSV export or the user's own Google Drive (D-020). To be **open-sourced** — builds/runs with no secret config (D-027).
 - **Platform:** **Kotlin Multiplatform (KMP) + Compose Multiplatform**, targeting **Android and iOS** from one shared codebase. This is settled — the project is KMP, not Android-only.
 - **State:** only the default template code exists so far (`App.kt` with a "Click me!" button, `Greeting`, `Platform` expect/actual). No product features are built yet.
 
-`.plan/` (00–10, numbered by topic — overview, requirements, design decisions, UI/UX, architecture, auth, data+sync, security, testing, roadmap, guidelines) is the source of truth for intent. Decisions are logged ADR-style in `.plan/02-design-decisions.md` — change a decision there first, then code. The chosen stack is:
+`.plan/` (00–10, numbered by topic — overview, requirements, design decisions, UI/UX, architecture, backup-and-export, data-and-storage, security, testing, roadmap, guidelines) is the source of truth for intent. Decisions are logged ADR-style in `.plan/02-design-decisions.md` — change a decision there first, then code. **Scope was simplified 2026-07-04 (D-018…D-027): auth and Firestore sync removed; see that ADR block.** The chosen stack is:
 
 - **DI:** Koin (not Hilt — Hilt is Android-only)
-- **Local DB:** Room KMP (entities/DAOs in `commonMain`; DB builder per platform via `expect`/`actual`)
-- **Background sync:** shared sync logic in `commonMain`, scheduled via an `expect`/`actual` scheduler — WorkManager on Android, BGTaskScheduler on iOS
-- **Auth + cloud:** GitLive Firebase Kotlin SDK (`dev.gitlive:firebase-auth` / `-firestore`) wrapping the native Firebase SDKs
-- **Also:** kotlinx.serialization, Ktor client (future REST), kotlinx-datetime, multiplatform-settings + secure storage (`expect`/`actual`: EncryptedSharedPreferences / Keychain)
+- **Local DB:** Room KMP (entities/DAOs in `commonMain`; DB builder per platform via `expect`/`actual`) — the **only** data store; no cloud replica
+- **Backup/export (optional):** CSV export via a platform `FileExporter` (`expect`/`actual`); Google Drive backup via **Ktor** (Drive REST, `appDataFolder`) with authorization-only Google Sign-In (`drive.file` scope, D-021). Optional auto-backup scheduled via an `expect`/`actual` scheduler — WorkManager on Android, BGTaskScheduler on iOS (D-022)
+- **No auth, no Firestore, no cloud user data** (D-018/D-020) — no account, no data backend. **Firebase is used ONLY for Analytics + Crashlytics** (D-028) — PHI-free, opt-out; its config files (`google-services.json` / `GoogleService-Info.plist`) stay committed. Telemetry sits behind an `expect`/`actual` `Telemetry` seam.
+- **Also:** kotlinx.serialization (backup JSON), kotlinx-datetime, multiplatform-settings + secure storage (`expect`/`actual`: EncryptedSharedPreferences / Keychain — guards the Drive token)
 
 None of these libraries are wired up yet — add them to `gradle/libs.versions.toml` as features are built. When picking a library, KMP support is a hard requirement: keep `commonMain` platform-agnostic and push anything platform-specific into `androidMain`/`iosMain` via `expect`/`actual`.
 
@@ -51,8 +51,9 @@ Note: there is currently **no lint task and no CI configured**. `assembleDebug` 
 
 ## Target design (from `.plan/`, for when building features)
 
-Before writing feature code, read `.plan/10-guidelines.md` (coding rules + AI directives); the numbered `.plan/` docs are the spec for each subsystem — 03 UI/UX (per-screen specs + design system), 04 architecture, 05 authentication, 06 data-and-sync, 07 security. Build order and acceptance criteria live in `.plan/09-roadmap.md`.
+Before writing feature code, read `.plan/10-guidelines.md` (coding rules + AI directives); the numbered `.plan/` docs are the spec for each subsystem — 03 UI/UX (per-screen specs + design system), 04 architecture, 05 backup-and-export, 06 data-and-storage, 07 security. Build order and acceptance criteria live in `.plan/09-roadmap.md`.
 
-- **Offline-first flow:** validate → save to local DB (marked `Pending`) → update UI → queue background sync. Sync uploads `Pending` records to Firestore (`patients/{patientId}/vitals/{recordId}`), marks `Synced`, retries with exponential backoff. Conflict resolution: last-updated-timestamp wins.
+- **Local-first flow:** validate → save to local DB → update UI. That's it — no network, no sync, no per-record status. Room is the source of truth (D-005). Deletes are permanent hard deletes (D-025).
+- **Backup/export (opt-in only):** CSV export produces an RFC 4180 file the user saves/shares (06 §3). Google Drive backup uploads one versioned JSON snapshot to the user's `appDataFolder`, overwriting the previous one; restore **merges** it back in, newer-`updatedAt`-wins, never destructive (D-023/D-024).
 - **Vitals validation ranges:** SpO₂ 70–100, Heart Rate 20–250, Systolic BP 50–250, Diastolic BP 30–180.
 - **Layering:** Clean Architecture (Presentation / Domain / Data), MVVM, Repository pattern, immutable UI state, Coroutines + Flow, no business logic in Composables.

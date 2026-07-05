@@ -1,0 +1,168 @@
+<resources>
+    <string name="app_name">VitalCare</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_dashboard">Home</string>
+    <string name="tab_history">History</string>
+    <string name="tab_analytics">Analytics</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Common actions -->
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_ok">OK</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_close">Close</string>
+    <string name="action_back">Back</string>
+    <string name="action_search">Search</string>
+    <string name="action_more">More options</string>
+
+    <!-- Dashboard (03 §3.5) -->
+    <string name="dashboard_latest_reading">Latest reading</string>
+    <string name="dashboard_reading_at">at %1$s</string>
+    <string name="dashboard_empty_title">No readings yet today</string>
+    <string name="dashboard_record_now">Record now</string>
+    <string name="dashboard_today">Today</string>
+    <string name="dashboard_readings_count">%1$d readings</string>
+    <string name="dashboard_reading_count_one">1 reading</string>
+    <string name="dashboard_quick_actions">Quick actions</string>
+    <string name="dashboard_record_vitals">Record Vitals</string>
+
+    <!-- Vitals (01 §2) -->
+    <string name="vital_spo2">SpO₂</string>
+    <string name="vital_spo2_full">Oxygen saturation</string>
+    <string name="vital_heart_rate">Heart Rate</string>
+    <string name="vital_blood_pressure">Blood Pressure</string>
+    <string name="vital_systolic">Systolic</string>
+    <string name="vital_diastolic">Diastolic</string>
+    <string name="unit_percent">%</string>
+    <string name="unit_bpm">bpm</string>
+    <string name="unit_mmhg">mmHg</string>
+
+    <!-- Record Vitals (03 §3.6) -->
+    <string name="record_vitals_title">Record Vitals</string>
+    <string name="record_vitals_edit_title">Edit Record</string>
+    <string name="field_date">Date</string>
+    <string name="field_time">Time</string>
+    <string name="field_remarks">Remarks</string>
+    <string name="field_remarks_hint">Optional notes, e.g. after a walk</string>
+    <string name="date_today_format">Today, %1$s</string>
+    <string name="hint_range_spo2">70–100</string>
+    <string name="hint_range_heart_rate">20–250</string>
+    <string name="hint_range_systolic">50–250</string>
+    <string name="hint_range_diastolic">30–180</string>
+    <string name="error_spo2_range">Enter a value between 70 and 100</string>
+    <string name="error_heart_rate_range">Enter a value between 20 and 250</string>
+    <string name="error_systolic_range">Enter a value between 50 and 250</string>
+    <string name="error_diastolic_range">Enter a value between 30 and 180</string>
+    <string name="error_diastolic_not_less">Diastolic must be lower than systolic</string>
+    <string name="error_bp_pair">Enter both systolic and diastolic</string>
+    <string name="error_not_a_number">Enter a whole number</string>
+    <string name="error_no_vitals">Enter at least one vital</string>
+    <string name="error_remarks_too_long">Keep remarks under 500 characters</string>
+    <string name="error_time_future">Time can’t be in the future</string>
+    <string name="snackbar_reading_saved">Reading saved ✓</string>
+    <string name="discard_title">Discard changes?</string>
+    <string name="discard_message">Your edits to this reading will be lost.</string>
+    <string name="discard_confirm">Discard</string>
+    <string name="discard_dismiss">Keep editing</string>
+    <string name="time_picker_title">Select time</string>
+
+    <!-- History (03 §3.7) -->
+    <string name="history_title">History</string>
+    <string name="history_search_hint">Search remarks</string>
+    <string name="filter_all">All</string>
+    <string name="filter_today">Today</string>
+    <string name="filter_week">This Week</string>
+    <string name="filter_month">This Month</string>
+    <string name="header_today">Today</string>
+    <string name="header_yesterday">Yesterday</string>
+    <string name="history_empty_title">No readings yet</string>
+    <string name="history_empty_message">Start by recording your first reading</string>
+    <string name="history_empty_action">Record a reading</string>
+    <string name="history_no_matches">No readings match your search</string>
+    <string name="history_export_csv">Export to CSV</string>
+
+    <!-- Record Details (03 §3.8) -->
+    <string name="details_title">Reading details</string>
+    <string name="details_created">Recorded %1$s</string>
+    <string name="details_updated">Last updated %1$s</string>
+    <string name="details_delete_title">Delete this reading?</string>
+    <string name="details_delete_message">This can’t be undone.</string>
+    <string name="snackbar_reading_deleted">Reading deleted</string>
+    <string name="details_read_only">Past readings can’t be edited</string>
+
+    <!-- Analytics (03 §3.9) -->
+    <string name="analytics_title">Analytics</string>
+    <string name="range_daily">Daily</string>
+    <string name="range_weekly">Weekly</string>
+    <string name="range_monthly">Monthly</string>
+    <string name="stat_min">Min</string>
+    <string name="stat_avg">Avg</string>
+    <string name="stat_max">Max</string>
+    <string name="analytics_empty">No data in this range yet</string>
+
+    <!-- Settings (03 §3.10) -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_profile">Profile</string>
+    <string name="settings_profile_name">Display name</string>
+    <string name="settings_profile_name_hint">How should we greet you?</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="settings_backup_export">Backup &amp; Export</string>
+    <string name="settings_export_csv">Export to CSV</string>
+    <string name="settings_export_csv_subtitle">Save or share your readings as a spreadsheet</string>
+    <string name="export_scope_title">What do you want to export?</string>
+    <string name="export_success">Export ready</string>
+    <string name="export_failed">Export failed — nothing was changed</string>
+    <string name="export_empty">No readings to export</string>
+    <string name="settings_google_drive">Google Drive backup</string>
+    <string name="settings_drive_not_configured">Not set up in this build</string>
+    <string name="settings_drive_connect">Connect Google Drive</string>
+    <string name="settings_drive_connect_subtitle">Keep a backup in your own Drive</string>
+    <string name="settings_drive_backup_now">Back up now</string>
+    <string name="settings_drive_backing_up">Backing up…</string>
+    <string name="settings_drive_last_backup">Last backup %1$s</string>
+    <string name="settings_drive_never_backed_up">Not backed up yet</string>
+    <string name="settings_drive_restore">Restore from Drive</string>
+    <string name="settings_drive_restore_note">Merges your backup into this device — never deletes anything</string>
+    <string name="settings_drive_restoring">Restoring…</string>
+    <string name="settings_drive_auto_backup">Auto-backup</string>
+    <string name="cadence_off">Off</string>
+    <string name="cadence_daily">Daily</string>
+    <string name="cadence_weekly">Weekly</string>
+    <string name="cadence_monthly">Monthly</string>
+    <string name="settings_drive_disconnect">Disconnect</string>
+    <string name="disconnect_title">Disconnect Google Drive?</string>
+    <string name="disconnect_message">Auto-backup stops. Your existing backup stays in your Drive.</string>
+    <string name="snackbar_backup_done">Backed up to Google Drive ✓</string>
+    <string name="snackbar_backup_failed">Backup failed — your data is safe on this device</string>
+    <string name="snackbar_restore_done">Restored %1$d readings</string>
+    <string name="snackbar_restore_up_to_date">Already up to date</string>
+    <string name="snackbar_restore_no_backup">No backup found in your Drive</string>
+    <string name="snackbar_restore_unsupported">Backup was made by a newer version of VitalCare</string>
+    <string name="snackbar_drive_connect_failed">Google Drive connection failed</string>
+
+    <!-- Dashboard backup hint (FR-D3) -->
+    <string name="dashboard_backed_up_today">Backed up today</string>
+    <string name="dashboard_backed_up_days_ago">Backed up %1$d days ago</string>
+    <string name="dashboard_unbacked_changes">Unbacked-up changes · Back up now →</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_privacy_toggle">Share anonymous usage &amp; crash data</string>
+    <string name="settings_privacy_note">Never includes vital values, remarks, or your name.</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_source">Open-source project</string>
+
+    <!-- Errors -->
+    <string name="error_generic">Something went wrong</string>
+
+    <!-- Content descriptions (NFR-6) -->
+    <string name="cd_out_of_range">Out of typical range</string>
+    <string name="cd_record_vitals">Record vitals</string>
+    <string name="cd_pick_time">Pick time</string>
+</resources>

@@ -18,14 +18,19 @@ silent, propose a decision in [02-design-decisions.md](02-design-decisions.md) b
    `StateFlow`, effects as one-shot flows.
 5. **KMP discipline:** shared code in `commonMain` and platform-agnostic; **no Android/iOS APIs
    in `commonMain`** — platform code goes behind `expect`/`actual` in `androidMain`/`iosMain`,
-   kept as thin as possible. Every library added must support KMP (Koin, Room KMP, Ktor,
-   kotlinx-*, GitLive Firebase).
-6. **Koin for DI** (not Hilt — Hilt is Android-only). **Room KMP** for storage. **GitLive** for Firebase.
+   kept as thin as possible. Every library added must support KMP (Koin, Room KMP, Ktor, kotlinx-*).
+6. **Koin for DI** (not Hilt — Hilt is Android-only). **Room KMP** is the only data store — no
+   login, no Firestore, no backend for user data (D-018/D-020). Google Drive backup uses **Ktor**
+   (Drive REST). **Firebase is used ONLY for Analytics + Crashlytics** (D-028) — never for auth or data.
 7. **Versions only in `gradle/libs.versions.toml`** (D-013); reference via `libs.*` /
    `projects.shared`. Never hardcode a version in a module build file.
 8. **All user-facing strings via Compose resources** (D-017) — no hardcoded literals.
-9. **No PHI in logs** (§07/6): never log vital values, remarks, names, or emails.
-10. **Tests required** with every feature — prefer `commonTest`; follow [08-testing.md](08-testing.md).
+9. **No PHI off-device** (§07/6, D-028): never log — or send to Analytics/Crashlytics — vital
+   values, remarks, or the profile name. Telemetry carries counts, screen names, and crash stacks only.
+10. **No committed secrets** (D-027): the app must build and run with no secret configuration;
+    Drive OAuth client IDs are contributor-supplied and never committed. The Firebase telemetry
+    config (`google-services.json` / plist) is committed (client identifiers, not secrets, D-028).
+11. **Tests required** with every feature — prefer `commonTest`; follow [08-testing.md](08-testing.md).
     Every bug fix includes a regression test.
 
 ## 3. Kotlin style
@@ -37,7 +42,7 @@ silent, propose a decision in [02-design-decisions.md](02-design-decisions.md) b
 - Errors as `AppResult`/`AppError` at layer boundaries; exceptions don't cross the data layer.
 - Small functions; small composables (extract when a composable exceeds ~50 lines or nests deeply).
 - Naming: `*Screen` / `*ViewModel` / `*UiState` / `*Event` / `*Effect`; use cases are verb-phrases
-  (`SaveVitalRecord`); DAOs `*Dao`; entities `*Entity`; Firestore DTOs `*Dto`.
+  (`SaveVitalRecord`); DAOs `*Dao`; entities `*Entity`; backup/export DTOs `*Dto`.
 - KDoc on public APIs of `domain/` and `core/`; comments explain *why*, not *what*.
 
 ## 4. Compose conventions

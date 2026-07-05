@@ -4,86 +4,56 @@ Every screen, state, and flow, plus the design system. Built with **Compose Mult
 Material 3**, one shared UI for Android and iOS. Requirements references (`FR-*`, `BR-*`) point
 to [01-product-requirements.md](01-product-requirements.md).
 
+> **No auth screens.** There is no Splash-time login decision, no Login/Register/Forgot-password
+> (D-018). The app opens straight to the Dashboard. Backup/export lives in Settings (§3.10) and is
+> entirely optional.
+
 ## 1. Design principles
 
 1. **Grandparent-proof** — the primary record flow must be completable by an elderly patient:
-   large touch targets (≥ 48 dp), big numerals, one clear primary action per screen.
+   large touch targets (≥ 48 dp), big numerals, one clear primary action per screen. No login to get past.
 2. **Calm medical theme** — blue primary, generous whitespace, no alarming colors except for
    genuine errors/out-of-range hints.
-3. **Honest offline UX** — never fake success or block on network. Sync state is always visible,
-   never modal. Offline is a normal state, not an error state.
-4. **Instant feedback** — saving is local, so every action responds immediately.
+3. **Instant feedback** — saving is local, so every action responds immediately.
+4. **Backup is quiet and optional** — never nag; backup lives in Settings and, at most, a subtle
+   Dashboard hint when Drive is connected.
 
 ## 2. Navigation map
 
 ```
-Splash (route: "splash")
- ├─ not authenticated ──► Auth graph
- │                         Login ⇄ Register
- │                         Login ─► ForgotPassword
- │                         (successful auth ─► Dashboard, auth graph popped)
- └─ authenticated ──────► Main graph
-                           Dashboard ─► RecordVitals
-                           Dashboard ─► History ─► RecordDetails ─► RecordVitals (edit mode)
-                           Dashboard ─► Analytics
-                           Dashboard ─► Settings
+App launch ──► Dashboard  (no splash gate, no auth)
+                Dashboard ─► RecordVitals
+                Dashboard ─► History ─► RecordDetails ─► RecordVitals (edit mode)
+                Dashboard ─► Analytics
+                Dashboard ─► Settings ─► (CSV export · Drive connect/backup/restore)
 ```
 
-- Single shared `NavHost` in `App()`; type-safe `@Serializable` routes (D-008).
-- Auth and Main are separate nested graphs; login/logout swaps graphs and clears back stack.
+- Single shared `NavHost` in `App()`; type-safe `@Serializable` routes (D-008). One graph — no
+  separate auth graph.
 - **Bottom navigation bar** on the four top-level destinations: Dashboard · History · Analytics · Settings.
   Record Vitals opens as a full screen pushed on top (not a tab).
 - System back: from any top-level tab returns to Dashboard; from Dashboard exits the app.
+- An optional brief branded splash may show on cold start, but it makes **no** routing decision —
+  it always lands on Dashboard. (Skippable; not required for MVP.)
 
 ## 3. Screen specifications
-
-### 3.1 Splash
-| | |
-|---|---|
-| Purpose | Brand moment + route decision (session restore) |
-| Content | Centered app logo + name on `background` color |
-| Logic | Observe auth state (≤ ~500 ms): authenticated → Dashboard; else → Login. No spinner unless restore exceeds 500 ms |
-| States | Single state; no user interaction |
-
-### 3.2 Login (FR-A2)
-| | |
-|---|---|
-| Layout | Logo small at top → "Welcome back" headline → Email field → Password field (show/hide toggle) → **Login** (filled, full-width) → "Forgot password?" (text button) → divider → "New here? **Create account**" |
-| Validation | Email format; password non-empty. Inline errors below fields on submit |
-| Loading | Button shows inline progress, form disabled |
-| Errors | Auth failures as inline banner above button, mapped to friendly text (see 05-authentication.md §7). Offline: "No connection — login needs internet the first time." |
-| Nav | Success → Dashboard (clear auth graph). Register / Forgot Password links |
-
-### 3.3 Register (FR-A1)
-| | |
-|---|---|
-| Layout | "Create account" headline → Name → Email → Password (helper: "Min 8 characters") → **Create account** (filled) → "Already have an account? **Login**" |
-| Validation | Name non-empty; email format; password ≥ 8 chars |
-| On success | Create Firebase user → create `patients/{uid}` profile doc → auto-login → Dashboard |
-| Errors | email-already-in-use, weak-password, offline — inline banner |
-
-### 3.4 Forgot Password (FR-A3)
-| | |
-|---|---|
-| Layout | Explainer text → Email field → **Send reset link** |
-| Success | Confirmation state: "Check your email" + back to Login |
-| Note | Do not reveal whether the email exists (send generic success) — see 07-security.md |
 
 ### 3.5 Dashboard (F2)
 Top-level tab. App bar: "VitalCare" + date ("Thursday, 3 July").
 
 Vertical scroll of cards (16 dp gutters):
 
-1. **Sync status strip** (FR-D3) — pill under the app bar:
-   `✓ All synced` (success tint) · `↻ 3 pending` (warning tint) · `⚠ Sync failed — tap to retry` (error tint) · `⊘ Offline — will sync later` (neutral).
-2. **Latest Reading card** (FR-D2) — time of reading + large vitals row: SpO₂ %, HR bpm,
+1. **Latest Reading card** (FR-D2) — time of reading + large vitals row: SpO₂ %, HR bpm,
    BP sys/dia. Values outside validation ranges get a warning tint. Empty state: "No readings
    yet today" + inline "Record now" button.
-3. **Today card** (FR-D1) — count of today's records; compact list of today's times; tap → History (Today filter).
-4. **Quick actions** (FR-D4) — primary **"Record Vitals"** button (full-width, prominent);
+2. **Today card** (FR-D1) — count of today's records; compact list of today's times; tap → History (Today filter).
+3. **Quick actions** (FR-D4) — primary **"Record Vitals"** button (full-width, prominent);
    secondary row: History · Analytics.
+4. **Backup hint (optional, FR-D3)** — shown **only when Drive is connected**: a slim line such as
+   "Backed up 2 days ago" or "You have unbacked-up changes · Back up now →". Absent entirely when
+   Drive isn't connected (no nagging to set it up). There is no sync/pending status.
 
-FAB: none (primary action is the Record Vitals button). Data is reactive from Room (FR-D5).
+Data is reactive from Room (FR-D5). No network is ever touched on this screen.
 
 ### 3.6 Record Vitals (F3, FR-R1..R4)
 Pushed full-screen. App bar: "Record Vitals" / "Edit Record" (edit mode), close (✕) with
@@ -102,18 +72,20 @@ Form (vertical, numeric keypads):
 
 - Inline error text under invalid fields on blur + on save (FR-R1, BR-6).
 - At least one vital required — "Enter at least one vital" if all empty.
-- **Save** (filled, full-width, sticky above keyboard). Save → Room insert (`PENDING`) →
+- **Save** (filled, full-width, sticky above keyboard). Save → Room insert →
   snackbar "Reading saved ✓" → pop back (FR-R2/R3). **No network involvement.**
 - Edit mode (from Record Details, today-only per BR-2): pre-filled, same rules; save updates
-  `updatedAt`, resets to `PENDING` (FR-R4).
+  `updatedAt` (FR-R4).
 
 ### 3.7 History (F4)
-Top-level tab. App bar: "History" + search icon (expands to search field, FR-H4).
+Top-level tab. App bar: "History" + search icon (expands to search field, FR-H4) + overflow menu.
 
 - Filter chips row: **All** · Today · This Week · This Month (FR-H3).
 - Sticky date headers: "Today", "Yesterday", else "12 May 2026" (FR-H1).
-- **Record row** (FR-H2): time (bold) · compact vitals (`98 % · 72 bpm · 120/80`) ·
-  sync-status icon (✓ synced / ↻ pending / ⚠ failed) · chevron. Tap → Record Details (FR-H5).
+- **Record row** (FR-H2): time (bold) · compact vitals (`98 % · 72 bpm · 120/80`) · chevron.
+  Tap → Record Details (FR-H5). No sync indicator (there is no sync).
+- **Overflow → Export to CSV** (FR-H6): exports the currently filtered set via the platform
+  save/share sheet (05 §3).
 - Empty states: no records at all ("Start by recording your first reading" + button);
   no matches for filter/search.
 - List is paged/lazy (`LazyColumn`); grouped query from Room.
@@ -121,10 +93,10 @@ Top-level tab. App bar: "History" + search icon (expands to search field, FR-H4)
 ### 3.8 Record Details (F5)
 Pushed from History. App bar: back + date/time title.
 
-- All vitals as labeled large values; remarks block; metadata footer (created, last updated, sync status).
+- All vitals as labeled large values; remarks block; metadata footer (created, last updated).
 - **If record is today's (BR-2/3):** app-bar actions Edit (→ Record Vitals in edit mode) and
-  Delete (confirmation dialog: "Delete this reading? This can't be undone.") → tombstone
-  soft-delete (D-009) → pop back with snackbar.
+  Delete (confirmation dialog: "Delete this reading? This can't be undone.") → **permanent hard
+  delete** (D-025) → pop back with snackbar.
 - If past: read-only, no actions shown.
 
 ### 3.9 Analytics (F6)
@@ -140,99 +112,142 @@ Top-level tab. App bar: "Analytics".
 ### 3.10 Settings (F8)
 Top-level tab. Sectioned list:
 
-1. **Profile** — avatar initial, name, email (read-only MVP).
+1. **Profile** — optional local display name; tap to edit inline (D-019). No email, no account.
 2. **Appearance** — Theme: System / Light / Dark (FR-SE2).
-3. **Sync** — last successful sync time; pending count; **Sync now** button (spins while running); failed-count with retry (FR-SE3, FR-S3).
-4. **About** — version.
-5. **Logout** — destructive-styled row → confirmation dialog ("You'll need internet to log back in. Unsynced readings stay on this device." per D-015) (FR-SE4).
+3. **Backup & Export** (F7) —
+   - **Export to CSV** row → scope chooser → platform save/share (FR-B1). Always available.
+   - **Google Drive** subsection:
+     - Not connected: **Connect Google Drive** button (FR-B2). If the build has no OAuth client
+       configured (D-027), the row is shown disabled with "Not set up in this build."
+     - Connected: shows the connected state, **Back up now** (FR-B3, spins while running,
+       shows last-backup time), **Restore from Drive** (FR-B5, with a "this merges, never
+       deletes" note), **Auto-backup** selector Off/Daily/Weekly/Monthly (FR-B4), and
+       **Disconnect** (FR-B6, confirmation).
+   - (Proposed) **Encrypt backups** toggle + password (FR-B7, D-026).
+4. **Privacy** — "Share anonymous usage & crash data" toggle (FR-SE5, D-029); a one-line note that
+   it never includes vital values, remarks, or names. On by default.
+5. **About** — version; link to the open-source repository (FR-SE4).
 
-## 4. Design system
+*(No Logout row — there is no session.)*
 
-### 4.1 Color — light theme (Settled)
+## 4. Design system — "Soft Clinical" (D-030)
 
+A soft, modern wellness aesthetic tuned for clinical clarity and elderly accessibility: off-white
+backgrounds, muted multi-pastel **bento** tiles, bold geometric type with big hero numerals, an
+**indigo** primary (`#4849A1`) with near-black ink text, full-pill shapes, and gentle diffuse
+depth. Built as a **custom Material 3 theme** — not a framework change (D-001). The §5 guardrails are non-negotiable and
+**override the aesthetic** wherever they conflict (chiefly: near-black text on every tint; red +
+icon for out-of-range).
+
+### 4.1 Color — light (Proposed palette under D-030)
+
+**Neutrals, ink & primary**
 | Token | Hex | Usage |
 |---|---|---|
-| Primary | `#2563EB` | Buttons, active states, links, chart lines |
-| Success | `#16A34A` | Synced status, in-range confirmations |
-| Warning | `#F59E0B` | Pending sync, out-of-range value hints |
-| Error | `#DC2626` | Validation errors, failed sync, delete |
-| Background | `#F8FAFC` | Screen background |
-| Surface | `#FFFFFF` | Cards, sheets, app bar |
-| On-surface | `#0F172A` | Primary text |
-| On-surface variant | `#64748B` | Secondary text, labels |
-| Outline | `#E2E8F0` | Dividers, field borders |
+| Background | `#F3F5F4` | Screen background (soft warm grey-green) |
+| Surface | `#FFFFFF` | Base cards, sheets, app bar, circular icon buttons |
+| **Primary (brand/action)** | `#4849A1` | Primary buttons/CTAs, active controls, nav indicator, links, hero tile, primary chart line |
+| On-primary | `#FFFFFF` | Text/icons on primary (≈ 7.6:1 — passes AAA) |
+| Primary-container | `#E4E4F4` | Soft indigo tint (selected chip, indigo bento tile); text on it `#26275F` |
+| Ink (text) | `#161616` | All headings, values & body text — near-black, used on white and **every** pastel tint |
+| On-surface variant | `#6B7280` | Secondary text, labels |
+| Outline | `#E6EAE8` | Hairline on white icon buttons / fields |
 
-### 4.2 Color — dark theme (Proposed, complements the settled light palette)
+**Bento tile tints** — soft fills, **always** paired with near-black text/values (never text-on-tint)
+| Token | Hex | Typical use |
+|---|---|---|
+| Tint / Sage | `#D2E4D9` | Calm neutral tint, SpO₂ tiles |
+| Tint / Blue | `#D3E3EC` | Heart-rate tiles |
+| Tint / Lavender | `#E2D9F0` | Blood-pressure tiles |
+| Tint / Peach | `#F6E1D7` | Highlights, streaks |
+| Tint / Cream | `#EBEDD6` | Neutral stat tiles |
 
+**Accent & semantic**
+| Token | Hex | Usage |
+|---|---|---|
+| Accent (energy, limited) | `#F97A45` | Record FAB, celebratory/streak moments — **never** a warning |
+| Success / in-range | `#2E9E6B` | In-range confirmation |
+| Warning / caution | `#D98A24` | Amber caution |
+| Error / out-of-range | `#DC3B34` | Out-of-range values, delete, failure — always with icon + label |
+
+### 4.2 Color — dark (Proposed)
 | Token | Hex |
 |---|---|
-| Primary | `#3B82F6` |
-| Success | `#22C55E` |
-| Warning | `#FBBF24` |
-| Error | `#EF4444` |
-| Background | `#0F172A` |
-| Surface | `#1E293B` |
-| On-surface | `#F1F5F9` |
-| On-surface variant | `#94A3B8` |
-| Outline | `#334155` |
+| Background / Surface | `#121513` / `#1C201D` |
+| Primary | `#B9BAF0` (light indigo; on-primary `#1B1C52`) |
+| Primary-container | `#33346F` (on it `#E4E4F4`) |
+| On-surface / variant | `#EDEFEE` / `#9BA3A0` |
+| Outline | `#333B37` |
+| Tint Sage / Blue / Lavender / Peach / Cream | `#26332B` / `#243139` / `#2E2A3D` / `#392B25` / `#2F3323` |
+| Accent | `#FB8A5A` |
+| Success / Warning / Error | `#3BB981` / `#E7A73C` / `#F26D63` |
 
-Dark theme is supported from day one; theme setting per FR-SE2. Map both palettes through
-Material 3 `lightColorScheme()` / `darkColorScheme()` in a shared `VitalCareTheme`.
+Both palettes map through Material 3 `lightColorScheme()` / `darkColorScheme()` in `VitalCareTheme`,
+with the tile tints + accent as theme-extension colors. Theme setting per FR-SE2.
 
-### 4.3 Typography (Material 3 defaults, roles pinned)
+### 4.3 Typography — bold geometric
+- **Display font:** Plus Jakarta Sans (geometric, strong heavy weights) — Proposed; fallback Inter.
+- Hero numerals are the star (like the reference's "88 %", "1200 kcal"): big and heavy.
 
-| Role | Usage |
-|---|---|
-| `displaySmall` | Big vital values (Latest Reading, Record Details) |
-| `headlineSmall` | Screen headlines ("Welcome back") |
-| `titleMedium` | Card titles, date headers |
-| `bodyLarge` | Form inputs, primary content |
-| `bodyMedium` | Secondary content, remarks |
-| `labelMedium` | Field labels, chips, status pills |
+| Role | Spec | Usage |
+|---|---|---|
+| Hero numeral | 44–56 / w800, tight | Big vital values (Latest Reading, Analytics) |
+| Display | 30–34 / w800 | Screen titles ("Your vitals today") |
+| Title | 17–18 / w700 | Card titles, date headers |
+| Body | 15–16 / w500 | Form inputs, content |
+| Label | 13 / w600 | Field labels, chips, unit suffixes, tab labels |
 
-Respect platform font scaling (dynamic type) — never fixed-size text (NFR-6).
+Respect platform font scaling (dynamic type) — never fixed-size text (NFR-6); hero numerals scale.
 
-### 4.4 Shape, spacing, elevation
-
-- Spacing scale: **4 / 8 / 16 / 24 / 32 dp** (8 dp grid; 4 dp only for icon-text gaps).
-- Corner radius: **16 dp** cards & buttons; 12 dp text fields; full (pill) for chips/status.
-- Elevation: cards 1 dp; prefer outline + tonal contrast over heavy shadows.
-- Screen margins: 16 dp horizontal; 16 dp between cards.
+### 4.4 Shape, spacing, depth — soft & rounded
+- **Radius:** cards 24 dp (hero tiles 28 dp); buttons & chips **full pill**; text fields 18 dp; icon buttons full circle.
+- **Bento layout:** a full-width hero tile + rows of two smaller tiles of varying tints; 16 dp gaps, 20 dp screen margins.
+- **Depth:** soft, diffuse shadows (low-opacity, large-blur) — cards gently float on the light background. No hard borders (hairline outline only on white icon buttons/fields), no heavy shadows.
+- **Primary CTA:** full-width indigo (`#4849A1`) pill, white label, ≥ 56 dp tall (like the reference's "Let's start!").
+- **Circular icon buttons:** white, 44–48 dp, subtle outline — back (←), calendar, search, etc.
 
 ### 4.5 Component inventory (shared, in `core/designsystem`)
 
 | Component | Description |
 |---|---|
-| `VitalCareTheme` | M3 theme wrapper: palettes above + typography + shapes |
-| `PrimaryButton` / `SecondaryButton` | Filled / outlined, full-width variants, loading state built in |
-| `VitalTextField` | Labeled field with suffix unit, error slot, numeric keypad option |
-| `VitalCard` | Surface card, 16 dp radius, standard padding |
-| `SyncStatusPill` | The 4-state sync indicator (§3.5) |
-| `SyncStatusIcon` | Row-level ✓/↻/⚠ indicator |
-| `VitalValueDisplay` | Big value + unit + label (with out-of-range tint) |
-| `EmptyState` | Icon + message + optional action button |
-| `ConfirmDialog` | Standard confirmation (delete, logout, discard) |
-| `VitalTrendChart` | Canvas line chart (D-012) |
-| `SectionHeader` | Settings/History section titles |
+| `VitalCareTheme` | Custom M3 theme: palettes + tile-tint/accent extensions + Plus Jakarta type + pill/rounded shapes |
+| `PrimaryButton` / `SecondaryButton` | Indigo pill (filled) / outlined pill, full-width, loading state built in |
+| `CircleIconButton` | White circular icon button (back, search, calendar…) |
+| `BentoTile` | Soft-tint rounded tile with a corner icon chip, big value, label — the core building block |
+| `VitalValueDisplay` | Hero numeral + unit + label (out-of-range → red + icon) |
+| `VitalTextField` | Filled, pill/rounded field, suffix unit, error slot, numeric keypad option |
+| `PillBarChart` | Rounded-pill bar chart (weekly/monthly), one tint per series |
+| `VitalTrendChart` | Canvas line chart (D-012), per-vital calm hue |
+| `RingProgress` | Circular progress ring (e.g., readings logged today) |
+| `BackupStatusRow` | Optional last-backup / unbacked-up hint |
+| `EmptyState` / `ConfirmDialog` / `SectionHeader` | As before, restyled to the system |
+| `BottomNavBar` | Floating pill nav; indigo pill indicator behind the active icon |
+
+*(The former `SyncStatusPill` / `SyncStatusIcon` are removed — there is no sync.)*
 
 ### 4.6 Iconography
 
-Material Symbols (outlined). Core set: `favorite` (HR), `spo2`/`water_drop` (SpO₂), `monitor_heart`
-(BP), `history`, `insights` (analytics), `settings`, `sync`, `cloud_done`, `cloud_off`, `warning`.
+Rounded/duotone Material Symbols inside circular tonal chips; consistent stroke. Core set:
+`favorite` (HR), `water_drop` (SpO₂), `monitor_heart` (BP), `history`, `insights`, `settings`,
+`cloud_upload`/`cloud_done` (Drive backup), `download` (CSV export), `restore`, `add` (record FAB),
+`warning`. Small emoji-style chips (🏅 streak) may accent celebratory moments — sparingly.
 
 ## 5. Accessibility checklist (NFR-6)
 
 - Touch targets ≥ 48 dp; primary Save/Record buttons ≥ 56 dp tall.
-- All icons and status indicators have `contentDescription`s; sync state announced as text, not color alone.
-- Color contrast ≥ 4.5:1 for text (both palettes above pass on their surfaces).
-- Out-of-range warnings use icon + text, not color alone.
+- All icons have `contentDescription`s; backup state announced as text, not color alone.
+- Color contrast ≥ 4.5:1 for text (near-black ink passes on white and on every pastel tint).
+- **Pastel tints are backgrounds only** — text and values on them are always near-black ink,
+  never pastel-on-pastel or light-on-pastel (D-030 guardrail).
+- Out-of-range warnings use a clear red + icon + label, never a pastel or the brand accent, never color alone.
 - Form errors are announced (semantics `error()`), focus moves to first invalid field on save.
 - Full dynamic-type support; layouts must not clip at 1.5× font scale.
 
-## 6. Offline & sync UX rules
+## 6. Backup & network UX rules
 
-1. Offline is shown passively (status pill), never as a blocking dialog or toast storm.
-2. Saving always succeeds offline — messaging is "saved" (true), never "will be saved".
-3. Pending records are individually marked in History; the aggregate count lives on Dashboard/Settings.
-4. `FAILED` state (retries exhausted) is actionable: tappable pill → manual retry (FR-S3).
-5. First-run login/register are the only network-required moments and say so explicitly (FR-A6).
+1. The app never blocks on network. The only screens that touch the network are the Drive
+   backup/restore actions in Settings, and only when the user taps them.
+2. Saving, editing, viewing, and analytics always work offline and say nothing about connectivity.
+3. Backup status is passive: at most a subtle Settings/Dashboard line, never a modal or toast storm.
+4. A failed backup/restore is a friendly inline message (05 §9) and leaves local data untouched.
+5. CSV export needs no account and no network — it's always available.
