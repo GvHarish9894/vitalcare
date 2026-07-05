@@ -12,8 +12,10 @@ import com.techgv.vitalcare.data.local.databaseBuilder
 import com.techgv.vitalcare.data.reminders.IosReminderPermission
 import com.techgv.vitalcare.data.reminders.IosReminderScheduler
 import com.techgv.vitalcare.data.reminders.ReminderNotificationDelegate
+import com.techgv.vitalcare.domain.backup.BackupProgressReporter
 import com.techgv.vitalcare.domain.backup.BackupScheduler
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
+import com.techgv.vitalcare.domain.backup.NoOpBackupProgressReporter
 import com.techgv.vitalcare.domain.backup.UnavailableDriveAuthorizer
 import com.techgv.vitalcare.domain.reminders.ReminderPermission
 import com.techgv.vitalcare.domain.reminders.ReminderScheduler
@@ -29,6 +31,7 @@ actual val platformModule: Module = module {
     // Drive needs the GoogleSignIn SDK added in Xcode plus a client ID
     // (contributor-supplied, D-027) — until then the feature reads unavailable.
     single<DriveAuthorizer> { UnavailableDriveAuthorizer() }
+    single<BackupProgressReporter> { NoOpBackupProgressReporter() }
     single { IosBackupScheduler() }
     single<BackupScheduler> { get<IosBackupScheduler>() }
     single<ReminderPermission> { IosReminderPermission() }

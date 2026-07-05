@@ -101,7 +101,7 @@ val backupModule: Module = module {
     single<BackupRemote> { DriveClient(get()) }
     factory { ConnectDrive(get(), get()) }
     factory { DisconnectDrive(get(), get(), get()) }
-    factory { BackupNow(get(), get(), get(), get(), get(), get(), get()) }
+    factory { BackupNow(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { RestoreFromDrive(get(), get(), get(), get(), get()) }
     factory { SetAutoBackup(get(), get()) }
     factory { ObserveBackupStatus(get(), get()) }

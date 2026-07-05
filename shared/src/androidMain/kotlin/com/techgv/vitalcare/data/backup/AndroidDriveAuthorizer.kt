@@ -3,6 +3,7 @@ package com.techgv.vitalcare.data.backup
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import com.google.android.gms.auth.GoogleAuthUtil
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.Scope
@@ -12,11 +13,10 @@ import com.techgv.vitalcare.core.util.AppResult
 import com.techgv.vitalcare.core.util.debugLog
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import com.techgv.vitalcare.domain.backup.DriveConfig
-import io.ktor.client.HttpClient
-import io.ktor.client.request.forms.submitForm
-import io.ktor.http.parameters
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -33,7 +33,6 @@ import kotlin.coroutines.resumeWithException
 class AndroidDriveAuthorizer(
     private val context: Context,
     private val config: DriveConfig,
-    private val httpClient: HttpClient,
 ) : DriveAuthorizer {
 
     override val isAvailable: Boolean get() = config.enabled
@@ -98,23 +97,25 @@ class AndroidDriveAuthorizer(
     }
 
     override suspend fun revoke(): AppResult<Unit> {
-        // Tokens live inside Play Services, not in our storage — revoke the
-        // grant itself so a reconnect re-consents (FR-B6).
+        // Disconnect = forget locally + evict the cached access token so a
+        // future connect re-mints a fresh one. We deliberately do NOT hit the
+        // OAuth revoke endpoint: the Authorization API has no revoke concept
+        // and keeps serving the (now-dead) token, which caused 401s on
+        // reconnect. Full account-level revocation stays available to the user
+        // in their Google Account settings. `drive.appdata` only ever exposes
+        // our own hidden folder, so retaining the grant until then is low-risk.
         val token = when (val silent = authorize(interactive = false)) {
             is AppResult.Success -> silent.value
-            is AppResult.Failure -> return AppResult.Success(Unit) // nothing to revoke
+            is AppResult.Failure -> return AppResult.Success(Unit) // nothing cached
         }
-        return try {
-            httpClient.submitForm(
-                url = "https://oauth2.googleapis.com/revoke",
-                formParameters = parameters { append("token", token) },
-            )
-            AppResult.Success(Unit)
+        try {
+            withContext(Dispatchers.IO) { GoogleAuthUtil.clearToken(context, token) }
         } catch (cancellation: CancellationException) {
             throw cancellation
-        } catch (t: Exception) {
-            AppResult.Success(Unit) // best effort — local disconnect proceeds regardless
+        } catch (t: Throwable) {
+            debugLog(TAG, "clearToken best-effort failed — ${t::class.simpleName}: ${t.message}")
         }
+        return AppResult.Success(Unit)
     }
 
     private companion object {

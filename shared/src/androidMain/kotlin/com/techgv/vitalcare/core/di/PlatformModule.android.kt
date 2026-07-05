@@ -11,9 +11,11 @@ import com.techgv.vitalcare.data.backup.AndroidFileExporter
 import com.techgv.vitalcare.data.backup.FileExporter
 import com.techgv.vitalcare.data.local.VitalCareDatabase
 import com.techgv.vitalcare.data.local.databaseBuilder
+import com.techgv.vitalcare.data.backup.AndroidBackupProgressReporter
 import com.techgv.vitalcare.data.reminders.AndroidReminderPermission
 import com.techgv.vitalcare.data.reminders.AndroidReminderScheduler
 import com.techgv.vitalcare.data.reminders.ReminderNotifications
+import com.techgv.vitalcare.domain.backup.BackupProgressReporter
 import com.techgv.vitalcare.domain.backup.BackupScheduler
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import com.techgv.vitalcare.domain.reminders.ReminderPermission
@@ -31,8 +33,9 @@ actual val platformModule: Module = module {
         )
     }
     single<FileExporter> { AndroidFileExporter(androidContext(), get()) }
-    single { AndroidDriveAuthorizer(androidContext(), get(), get()) } bind DriveAuthorizer::class
+    single { AndroidDriveAuthorizer(androidContext(), get()) } bind DriveAuthorizer::class
     single<BackupScheduler> { AndroidBackupScheduler(androidContext()) }
+    single<BackupProgressReporter> { AndroidBackupProgressReporter(androidContext()) }
     single { ReminderNotifications(androidContext()) }
     single { AndroidReminderPermission(androidContext()) } bind ReminderPermission::class
     single<ReminderScheduler> { AndroidReminderScheduler(androidContext()) }
