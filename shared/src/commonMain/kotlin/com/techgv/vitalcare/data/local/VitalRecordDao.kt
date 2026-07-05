@@ -34,6 +34,10 @@ interface VitalRecordDao {
     @Query("SELECT * FROM vital_records WHERE date BETWEEN :from AND :to ORDER BY date ASC, time ASC")
     suspend fun getByDateRange(from: String, to: String): List<VitalRecordEntity>
 
+    /** Newest reading by civil date+time — reminder skip-if-recorded check (D-032). */
+    @Query("SELECT * FROM vital_records ORDER BY date DESC, time DESC LIMIT 1")
+    suspend fun getNewest(): VitalRecordEntity?
+
     /** Immediate permanent delete (D-025) — no tombstones. */
     @Query("DELETE FROM vital_records WHERE id = :id")
     suspend fun hardDelete(id: String)

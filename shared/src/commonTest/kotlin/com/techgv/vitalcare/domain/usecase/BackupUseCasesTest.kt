@@ -12,6 +12,7 @@ import com.techgv.vitalcare.domain.backup.BackupRemote
 import com.techgv.vitalcare.domain.backup.BackupScheduler
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
+import com.techgv.vitalcare.domain.model.ReminderPreferences
 import com.techgv.vitalcare.domain.model.ThemePreference
 import com.techgv.vitalcare.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,7 @@ private class FakeSettingsRepository : SettingsRepository {
     override val driveConnected = MutableStateFlow(false)
     override val lastBackupAt = MutableStateFlow(0L)
     override val autoBackupCadence = MutableStateFlow(AutoBackupCadence.OFF)
+    override val reminderPreferences = MutableStateFlow(ReminderPreferences())
 
     override fun setTheme(value: ThemePreference) { theme.value = value }
     override fun setProfileName(value: String) { profileName.value = value }
@@ -36,6 +38,9 @@ private class FakeSettingsRepository : SettingsRepository {
     override fun setDriveConnected(value: Boolean) { driveConnected.value = value }
     override fun setLastBackupAt(value: Long) { lastBackupAt.value = value }
     override fun setAutoBackupCadence(value: AutoBackupCadence) { autoBackupCadence.value = value }
+    override fun setReminderPreferences(value: ReminderPreferences) {
+        reminderPreferences.value = value
+    }
 }
 
 private class FakeAuthorizer(

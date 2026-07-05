@@ -189,6 +189,11 @@ relevant phase) · `Amended by D-xxx` (still holds, but modified) · `Superseded
 **Owner action:** confirm/veto before publishing the repository — a license choice is the maintainer's call; swap the LICENSE file if MIT/GPL is preferred.
 **Rejected (as defaults):** MIT (no patent grant); GPLv3 (copyleft would constrain app-store forks unnecessarily for a personal-health tool).
 
+## D-032 — Local vitals-reminder notifications — `Settled`
+**Context (2026-07-05):** patients forget to record vitals; the user asked for interval reminders (1h/2h/4h/…) with customization, a permission-gated model, and notification-tap → Record Vitals.
+**Decision:** **Local** notifications only (no push service, D-018), opt-in and **OFF by default**. Preferences: interval presets 1/2/4/6/12h, active-hours window (default 08:00–21:00, overnight wrap supported), skip-when-already-recorded. Content is **PHI-free** (§07/6). Scheduling: Android = self-rechaining WorkManager one-time worker with a fire-time `shouldNotify` gate (quiet hours, foreground, already-recorded via DB); iOS = repeating `UNCalendarNotificationTrigger` per slot (≤60, under the 64-pending limit), skip-if-recorded best-effort on save. **Permission model:** the toggle stores intent; the OS permission is requested lazily — only when enabling; when `enabled && permission denied` the feature is dormant and the app shows a Dashboard banner + Settings warning deep-linking to system settings; permission is re-verified on every app resume and reminders auto-(re)schedule. Notification tap routes through a shared `PendingNavigation` StateFlow into `RecordVitalsRoute()` on both platforms.
+**Rejected:** AlarmManager exact alarms (SCHEDULE_EXACT_ALARM friction, reboot re-registration; minute-exactness unneeded); firebase push (needs a backend); reverting the toggle on denial (user chose intent-preserving banner model).
+
 ---
 
 ## How to add a decision

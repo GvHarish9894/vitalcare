@@ -1,6 +1,7 @@
 package com.techgv.vitalcare.domain.repository
 
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
+import com.techgv.vitalcare.domain.model.ReminderPreferences
 import com.techgv.vitalcare.domain.model.ThemePreference
 import kotlinx.coroutines.flow.StateFlow
 
@@ -20,6 +21,9 @@ interface SettingsRepository {
     val lastBackupAt: StateFlow<Long>
     val autoBackupCadence: StateFlow<AutoBackupCadence>
 
+    /** Vitals reminder intent (D-032) — scheduling is additionally permission-gated. */
+    val reminderPreferences: StateFlow<ReminderPreferences>
+
     fun setTheme(value: ThemePreference)
     fun setProfileName(value: String)
     fun setTelemetryEnabled(value: Boolean)
@@ -27,4 +31,6 @@ interface SettingsRepository {
     fun setDriveConnected(value: Boolean)
     fun setLastBackupAt(value: Long)
     fun setAutoBackupCadence(value: AutoBackupCadence)
+
+    fun setReminderPreferences(value: ReminderPreferences)
 }
