@@ -15,8 +15,11 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CloudDone
 import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.LinkOff
+import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -36,15 +39,23 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.techgv.vitalcare.core.designsystem.components.ConfirmDialog
 import com.techgv.vitalcare.core.designsystem.components.SectionHeader
 import com.techgv.vitalcare.core.designsystem.components.VitalTextField
 import com.techgv.vitalcare.core.util.AppLinks
+import com.techgv.vitalcare.domain.model.AutoBackupCadence
 import com.techgv.vitalcare.domain.model.HistoryFilter
 import com.techgv.vitalcare.domain.model.ThemePreference
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import vitalcare.shared.generated.resources.Res
 import vitalcare.shared.generated.resources.action_cancel
+import vitalcare.shared.generated.resources.cadence_daily
+import vitalcare.shared.generated.resources.cadence_monthly
+import vitalcare.shared.generated.resources.cadence_off
+import vitalcare.shared.generated.resources.cadence_weekly
+import vitalcare.shared.generated.resources.disconnect_message
+import vitalcare.shared.generated.resources.disconnect_title
 import vitalcare.shared.generated.resources.export_empty
 import vitalcare.shared.generated.resources.export_failed
 import vitalcare.shared.generated.resources.export_scope_title
@@ -55,7 +66,26 @@ import vitalcare.shared.generated.resources.filter_week
 import vitalcare.shared.generated.resources.settings_about
 import vitalcare.shared.generated.resources.settings_appearance
 import vitalcare.shared.generated.resources.settings_backup_export
+import vitalcare.shared.generated.resources.settings_drive_auto_backup
+import vitalcare.shared.generated.resources.settings_drive_backing_up
+import vitalcare.shared.generated.resources.settings_drive_backup_now
+import vitalcare.shared.generated.resources.settings_drive_connect
+import vitalcare.shared.generated.resources.settings_drive_connect_subtitle
+import vitalcare.shared.generated.resources.settings_drive_disconnect
+import vitalcare.shared.generated.resources.settings_drive_last_backup
+import vitalcare.shared.generated.resources.settings_drive_never_backed_up
 import vitalcare.shared.generated.resources.settings_drive_not_configured
+import vitalcare.shared.generated.resources.settings_drive_restore
+import vitalcare.shared.generated.resources.settings_drive_restore_note
+import vitalcare.shared.generated.resources.settings_drive_restoring
+import vitalcare.shared.generated.resources.snackbar_backup_done
+import vitalcare.shared.generated.resources.snackbar_backup_failed
+import vitalcare.shared.generated.resources.snackbar_drive_connect_failed
+import vitalcare.shared.generated.resources.snackbar_restore_done
+import vitalcare.shared.generated.resources.snackbar_restore_no_backup
+import vitalcare.shared.generated.resources.snackbar_restore_unsupported
+import vitalcare.shared.generated.resources.snackbar_restore_up_to_date
+import vitalcare.shared.generated.resources.error_generic
 import vitalcare.shared.generated.resources.settings_export_csv
 import vitalcare.shared.generated.resources.settings_export_csv_subtitle
 import vitalcare.shared.generated.resources.settings_google_drive
@@ -79,11 +109,28 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
 
     val exportEmpty = stringResource(Res.string.export_empty)
     val exportFailed = stringResource(Res.string.export_failed)
+    val connectFailed = stringResource(Res.string.snackbar_drive_connect_failed)
+    val backupDone = stringResource(Res.string.snackbar_backup_done)
+    val backupFailed = stringResource(Res.string.snackbar_backup_failed)
+    val restoreUpToDate = stringResource(Res.string.snackbar_restore_up_to_date)
+    val restoreNoBackup = stringResource(Res.string.snackbar_restore_no_backup)
+    val restoreUnsupported = stringResource(Res.string.snackbar_restore_unsupported)
+    val restoreDoneTemplate = stringResource(Res.string.snackbar_restore_done, "%COUNT%")
+    val genericError = stringResource(Res.string.error_generic)
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 SettingsEffect.ExportEmpty -> showSnackbar(exportEmpty)
                 SettingsEffect.ExportFailed -> showSnackbar(exportFailed)
+                SettingsEffect.DriveConnectFailed -> showSnackbar(connectFailed)
+                SettingsEffect.BackupDone -> showSnackbar(backupDone)
+                SettingsEffect.BackupFailed -> showSnackbar(backupFailed)
+                is SettingsEffect.RestoreDone ->
+                    showSnackbar(restoreDoneTemplate.replace("%COUNT%", effect.count.toString()))
+                SettingsEffect.RestoreUpToDate -> showSnackbar(restoreUpToDate)
+                SettingsEffect.RestoreNoBackup -> showSnackbar(restoreNoBackup)
+                SettingsEffect.RestoreUnsupported -> showSnackbar(restoreUnsupported)
+                SettingsEffect.RestoreFailed -> showSnackbar(genericError)
             }
         }
     }
@@ -123,13 +170,7 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
                 enabled = !uiState.isExporting,
                 onClick = { viewModel.onEvent(SettingsEvent.ExportCsvClicked) },
             )
-            SettingsRow(
-                icon = Icons.Rounded.CloudUpload,
-                title = stringResource(Res.string.settings_google_drive),
-                subtitle = stringResource(Res.string.settings_drive_not_configured),
-                enabled = false,
-                onClick = null,
-            )
+            DriveSection(uiState = uiState, onEvent = viewModel::onEvent)
         }
 
         SectionHeader(stringResource(Res.string.settings_privacy))
@@ -202,6 +243,111 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
             onSelect = { viewModel.onEvent(SettingsEvent.ExportScopeSelected(it)) },
             onDismiss = { viewModel.onEvent(SettingsEvent.ExportChooserDismissed) },
         )
+    }
+    if (uiState.showDisconnectConfirm) {
+        ConfirmDialog(
+            title = stringResource(Res.string.disconnect_title),
+            message = stringResource(Res.string.disconnect_message),
+            confirmLabel = stringResource(Res.string.settings_drive_disconnect),
+            dismissLabel = stringResource(Res.string.action_cancel),
+            onConfirm = { viewModel.onEvent(SettingsEvent.DisconnectConfirmed) },
+            onDismiss = { viewModel.onEvent(SettingsEvent.DisconnectDismissed) },
+            destructive = true,
+        )
+    }
+}
+
+/**
+ * Drive subsection states (03 §3.10): not configured in this build → disabled
+ * row (D-027); configured but not connected → connect row; connected → backup
+ * now / restore / auto-backup cadence / disconnect.
+ */
+@Composable
+private fun DriveSection(
+    uiState: SettingsUiState,
+    onEvent: (SettingsEvent) -> Unit,
+) {
+    when {
+        !uiState.driveAvailable -> SettingsRow(
+            icon = Icons.Rounded.CloudUpload,
+            title = stringResource(Res.string.settings_google_drive),
+            subtitle = stringResource(Res.string.settings_drive_not_configured),
+            enabled = false,
+            onClick = null,
+        )
+        !uiState.driveConnected -> SettingsRow(
+            icon = Icons.Rounded.CloudUpload,
+            title = stringResource(Res.string.settings_drive_connect),
+            subtitle = stringResource(Res.string.settings_drive_connect_subtitle),
+            enabled = !uiState.isConnectingDrive,
+            onClick = { onEvent(SettingsEvent.ConnectDriveClicked) },
+        )
+        else -> {
+            SettingsRow(
+                icon = Icons.Rounded.CloudUpload,
+                title = stringResource(Res.string.settings_drive_backup_now),
+                subtitle = if (uiState.isBackingUp) {
+                    stringResource(Res.string.settings_drive_backing_up)
+                } else {
+                    uiState.lastBackupText
+                        ?.let { stringResource(Res.string.settings_drive_last_backup, it) }
+                        ?: stringResource(Res.string.settings_drive_never_backed_up)
+                },
+                enabled = !uiState.isBackingUp,
+                onClick = { onEvent(SettingsEvent.BackupNowClicked) },
+            )
+            SettingsRow(
+                icon = Icons.Rounded.Restore,
+                title = stringResource(Res.string.settings_drive_restore),
+                subtitle = if (uiState.isRestoring) {
+                    stringResource(Res.string.settings_drive_restoring)
+                } else {
+                    stringResource(Res.string.settings_drive_restore_note)
+                },
+                enabled = !uiState.isRestoring,
+                onClick = { onEvent(SettingsEvent.RestoreClicked) },
+            )
+            Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)) {
+                Text(
+                    text = stringResource(Res.string.settings_drive_auto_backup),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AutoBackupCadence.entries.forEach { cadence ->
+                        FilterChip(
+                            selected = cadence == uiState.autoBackupCadence,
+                            onClick = { onEvent(SettingsEvent.CadenceSelected(cadence)) },
+                            shape = CircleShape,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            ),
+                            label = {
+                                Text(
+                                    text = stringResource(
+                                        when (cadence) {
+                                            AutoBackupCadence.OFF -> Res.string.cadence_off
+                                            AutoBackupCadence.DAILY -> Res.string.cadence_daily
+                                            AutoBackupCadence.WEEKLY -> Res.string.cadence_weekly
+                                            AutoBackupCadence.MONTHLY -> Res.string.cadence_monthly
+                                        },
+                                    ),
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+            SettingsRow(
+                icon = Icons.Rounded.LinkOff,
+                title = stringResource(Res.string.settings_drive_disconnect),
+                subtitle = stringResource(Res.string.settings_google_drive),
+                enabled = true,
+                onClick = { onEvent(SettingsEvent.DisconnectClicked) },
+            )
+        }
     }
 }
 

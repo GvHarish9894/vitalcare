@@ -2,6 +2,7 @@ package com.techgv.vitalcare.data.repository
 
 import com.techgv.vitalcare.core.telemetry.Telemetry
 import com.techgv.vitalcare.data.settings.AppSettings
+import com.techgv.vitalcare.domain.model.AutoBackupCadence
 import com.techgv.vitalcare.domain.model.ThemePreference
 import com.techgv.vitalcare.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +20,9 @@ class SettingsRepositoryImpl(
     override val theme: StateFlow<ThemePreference> = appSettings.theme
     override val profileName: StateFlow<String> = appSettings.profileName
     override val telemetryEnabled: StateFlow<Boolean> = appSettings.telemetryEnabled
+    override val driveConnected: StateFlow<Boolean> = appSettings.driveConnected
+    override val lastBackupAt: StateFlow<Long> = appSettings.lastBackupAt
+    override val autoBackupCadence: StateFlow<AutoBackupCadence> = appSettings.autoBackupCadence
 
     override fun setTheme(value: ThemePreference) = appSettings.setTheme(value)
 
@@ -28,4 +32,11 @@ class SettingsRepositoryImpl(
         appSettings.setTelemetryEnabled(value)
         telemetry.setEnabled(value)
     }
+
+    override fun setDriveConnected(value: Boolean) = appSettings.setDriveConnected(value)
+
+    override fun setLastBackupAt(value: Long) = appSettings.setLastBackupAt(value)
+
+    override fun setAutoBackupCadence(value: AutoBackupCadence) =
+        appSettings.setAutoBackupCadence(value)
 }

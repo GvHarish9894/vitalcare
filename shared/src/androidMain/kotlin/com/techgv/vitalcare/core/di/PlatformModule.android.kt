@@ -5,12 +5,17 @@ import androidx.room.RoomDatabase
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
 import com.techgv.vitalcare.core.util.AppInfo
+import com.techgv.vitalcare.data.backup.AndroidBackupScheduler
+import com.techgv.vitalcare.data.backup.AndroidDriveAuthorizer
 import com.techgv.vitalcare.data.backup.AndroidFileExporter
 import com.techgv.vitalcare.data.backup.FileExporter
 import com.techgv.vitalcare.data.local.VitalCareDatabase
 import com.techgv.vitalcare.data.local.databaseBuilder
+import com.techgv.vitalcare.domain.backup.BackupScheduler
+import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 actual val platformModule: Module = module {
@@ -21,6 +26,8 @@ actual val platformModule: Module = module {
         )
     }
     single<FileExporter> { AndroidFileExporter(androidContext(), get()) }
+    single { AndroidDriveAuthorizer(androidContext(), get(), get()) } bind DriveAuthorizer::class
+    single<BackupScheduler> { AndroidBackupScheduler(androidContext()) }
     single {
         val context = androidContext()
         val versionName = try {

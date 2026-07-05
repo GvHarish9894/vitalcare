@@ -42,6 +42,7 @@ fun VitalCareNavHost(
                 onRecordVitals = { navController.navigate(RecordVitalsRoute()) },
                 onOpenHistory = { navController.navigateToTopLevel(HistoryRoute) },
                 onOpenAnalytics = { navController.navigateToTopLevel(AnalyticsRoute) },
+                onOpenSettings = { navController.navigateToTopLevel(SettingsRoute) },
             )
         }
         composable<RecordVitalsRoute> { entry ->

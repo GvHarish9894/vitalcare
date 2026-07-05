@@ -13,6 +13,7 @@ fun initKoin(config: KoinAppDeclaration? = null) {
             databaseModule,
             repositoryModule,
             useCaseModule,
+            backupModule,
             viewModelModule,
         )
     }

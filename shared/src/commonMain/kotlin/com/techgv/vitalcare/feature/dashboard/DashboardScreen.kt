@@ -1,5 +1,6 @@
 package com.techgv.vitalcare.feature.dashboard
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,7 +40,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import vitalcare.shared.generated.resources.Res
 import vitalcare.shared.generated.resources.app_name
+import vitalcare.shared.generated.resources.dashboard_backed_up_days_ago
+import vitalcare.shared.generated.resources.dashboard_backed_up_today
 import vitalcare.shared.generated.resources.dashboard_empty_title
+import vitalcare.shared.generated.resources.dashboard_unbacked_changes
 import vitalcare.shared.generated.resources.dashboard_latest_reading
 import vitalcare.shared.generated.resources.dashboard_reading_at
 import vitalcare.shared.generated.resources.dashboard_reading_count_one
@@ -61,6 +65,7 @@ fun DashboardScreen(
     onRecordVitals: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenAnalytics: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val viewModel = koinViewModel<DashboardViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -104,7 +109,31 @@ fun DashboardScreen(
                 modifier = Modifier.weight(1f),
             )
         }
+        BackupHintLine(hint = uiState.backupHint, onOpenSettings = onOpenSettings)
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Subtle, passive backup line — only when Drive is connected (FR-D3, 03 §6). */
+@Composable
+private fun BackupHintLine(hint: BackupHint?, onOpenSettings: () -> Unit) {
+    when (hint) {
+        null -> Unit
+        is BackupHint.Pending -> Text(
+            text = stringResource(Res.string.dashboard_unbacked_changes),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clickable(onClick = onOpenSettings),
+        )
+        is BackupHint.BackedUp -> Text(
+            text = if (hint.daysAgo == 0) {
+                stringResource(Res.string.dashboard_backed_up_today)
+            } else {
+                stringResource(Res.string.dashboard_backed_up_days_ago, hint.daysAgo)
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

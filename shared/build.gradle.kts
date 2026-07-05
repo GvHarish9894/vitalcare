@@ -43,7 +43,13 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.androidx.core.ktx)
+            implementation(libs.androidx.work.runtime)
             implementation(libs.koin.android)
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.play.services.auth)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -63,6 +69,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.ktor.client.core)
             implementation(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.noArg)
             implementation(libs.room.runtime)
@@ -71,6 +78,7 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
         }
     }
 }

@@ -5,14 +5,25 @@ import androidx.lifecycle.viewModelScope
 import com.techgv.vitalcare.core.util.todayLocal
 import com.techgv.vitalcare.domain.model.VitalRecord
 import com.techgv.vitalcare.domain.usecase.GetTodaySummary
+import com.techgv.vitalcare.domain.usecase.ObserveBackupStatus
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Instant
+
+/** FR-D3: shown only while Drive is connected — absent means no hint at all. */
+sealed interface BackupHint {
+    /** There are changes newer than the last backup (or none was ever made). */
+    data object Pending : BackupHint
+    data class BackedUp(val daysAgo: Int) : BackupHint
+}
 
 data class DashboardUiState(
     val date: LocalDate,
@@ -20,29 +31,43 @@ data class DashboardUiState(
     val count: Int = 0,
     val latest: VitalRecord? = null,
     val times: List<LocalTime> = emptyList(),
+    val backupHint: BackupHint? = null,
 )
 
 class DashboardViewModel(
     getTodaySummary: GetTodaySummary,
+    observeBackupStatus: ObserveBackupStatus,
     clock: Clock,
-    timeZone: TimeZone,
+    private val timeZone: TimeZone,
 ) : ViewModel() {
 
     private val today = clock.todayLocal(timeZone)
 
-    val uiState: StateFlow<DashboardUiState> = getTodaySummary()
-        .map { summary ->
-            DashboardUiState(
-                date = today,
-                isLoading = false,
-                count = summary.count,
-                latest = summary.latest,
-                times = summary.times,
-            )
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = DashboardUiState(date = today),
+    val uiState: StateFlow<DashboardUiState> = combine(
+        getTodaySummary(),
+        observeBackupStatus(),
+    ) { summary, backup ->
+        DashboardUiState(
+            date = today,
+            isLoading = false,
+            count = summary.count,
+            latest = summary.latest,
+            times = summary.times,
+            backupHint = when {
+                !backup.connected -> null // quiet unless Drive is set up (03 §1)
+                backup.unbackedCount > 0 || backup.lastBackupAt == 0L -> BackupHint.Pending
+                else -> BackupHint.BackedUp(daysAgo = daysSince(backup.lastBackupAt))
+            },
         )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = DashboardUiState(date = today),
+    )
+
+    private fun daysSince(epochMillis: Long): Int =
+        Instant.fromEpochMilliseconds(epochMillis)
+            .toLocalDateTime(timeZone).date
+            .daysUntil(today)
+            .coerceAtLeast(0)
 }
