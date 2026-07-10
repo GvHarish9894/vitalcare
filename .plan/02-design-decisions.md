@@ -189,6 +189,20 @@ relevant phase) · `Amended by D-xxx` (still holds, but modified) · `Superseded
 **Owner action:** confirm/veto before publishing the repository — a license choice is the maintainer's call; swap the LICENSE file if MIT/GPL is preferred.
 **Rejected (as defaults):** MIT (no patent grant); GPLv3 (copyleft would constrain app-store forks unnecessarily for a personal-health tool).
 
+## D-032 — Fluid balance (water intake + urine output) as a separate, sum-aggregated feature — `Settled`
+**Context (2026-07-09):** Users want to track **water intake** and **urine output** ("water out"), monitored **separately**. Clinically this is *fluid balance*: many small events logged through the day, summed into a **daily total** and a **net balance (intake − output)**. This is fundamentally different from the existing vitals (SpO₂/HR/BP), which are **point-in-time** readings stored as nullable columns on one flat `VitalRecord` and **averaged** in analytics (`GetAnalytics`, 06 §7). Forcing fluids into the vitals record would average sips instead of totalling them — meaningless output.
+**Decision:** Model fluid tracking as its **own feature**, independent of vitals:
+1. **New store:** a `fluid_entries` Room table (parallel to `vital_records`), one row per discrete event — `id, date, time, type (INTAKE|OUTPUT), amountMl, note?, createdAt, updatedAt`. `OUTPUT` means urine. Reuses the vitals conventions: UUID id, ISO string `date`/`time`, epoch-millis timestamps, hard delete (D-025), restore-merge LWW by `updatedAt` (D-024).
+2. **Discrete events summed:** entries are logged individually and **summed per day** into totals + net balance; analytics is a new **SUM/balance** aggregation (daily totals for weekly/monthly, not averages) in a dedicated `GetFluidAnalytics` — `GetAnalytics` for vitals is left untouched.
+3. **Canonical mL storage + user-selectable display unit:** `amountMl` is always stored in **integer millilitres**. A **volume-unit preference (mL / oz)** in Settings converts only at the UI boundary (US fl oz = 29.5735 mL); switching units never migrates data.
+4. **Daily intake goal:** a user-set target (default **2000 mL**, stored in settings) drives a progress indicator on the Dashboard and Fluids hub.
+5. **Per-entry range:** `amountMl` must be `1..5000` (validated in a `FluidValidator`, mirroring `VitalsValidator`); time never in the future (BR-6); optional note ≤ 500 chars.
+6. **Access via a Dashboard card**, not a new bottom-nav tab — a "Fluid balance today" card opens a Fluids hub screen; the bottom bar stays at four tabs (03 §2).
+7. **Backup & export:** the Drive backup JSON gains a `fluids: [...]` array and its **`schemaVersion` bumps 1 → 2** (D-023); a **separate fluids CSV** (`date,time,type,amount_ml,note,created_at,updated_at`) is exported alongside the vitals CSV. Restore merges fluids non-destructively (D-024).
+8. **Schema migration:** `VitalCareDatabase` bumps to `version = 2` with a `Migration(1, 2)` that creates `fluid_entries` (+ its `date` index); existing vitals are untouched (per 06 §2 "every schema change ships a Migration").
+**Rationale:** Honors "monitor separately", matches the clinical fluid-balance mental model, and keeps the vitals model and its average-based analytics unchanged. The additive, nullable/parallel-table approach is the same extend-don't-break pattern as D-019.
+**Rejected:** Two nullable columns on `VitalRecord` (averages sips, no daily-total/goal concept, conflates two very different data shapes); a generic typed "measure" table (over-engineering — the app is field-per-measure by design); storing amounts in the display unit (data becomes ambiguous and unit-switching would need a migration).
+
 ---
 
 ## How to add a decision

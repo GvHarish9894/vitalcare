@@ -57,15 +57,18 @@ val TimeFormat: kotlinx.datetime.format.DateTimeFormat<LocalTime> = LocalTime.Fo
     minute()
 }
 
-/** "vitalcare-20260703-0830.csv" — CSV export file name (05 §3). */
-fun csvExportFileName(now: LocalDateTime): String {
-    val stamp = LocalDateTime.Format {
-        year(); monthNumber(); day()
-        char('-')
-        hour(); minute()
-    }.format(now)
-    return "vitalcare-$stamp.csv"
+private val CsvStampFormat = LocalDateTime.Format {
+    year(); monthNumber(); day()
+    char('-')
+    hour(); minute()
 }
+
+/** "vitalcare-20260703-0830.csv" — CSV export file name (05 §3). */
+fun csvExportFileName(now: LocalDateTime): String = "vitalcare-${CsvStampFormat.format(now)}.csv"
+
+/** "vitalcare-fluids-20260703-0830.csv" — fluids CSV export file name (D-032). */
+fun fluidCsvExportFileName(now: LocalDateTime): String =
+    "vitalcare-fluids-${CsvStampFormat.format(now)}.csv"
 
 /**
  * Semantic date label for history grouping (03 §3.7). The UI resolves

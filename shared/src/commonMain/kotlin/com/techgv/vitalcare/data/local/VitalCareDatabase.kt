@@ -7,10 +7,15 @@ import androidx.room.RoomDatabaseConstructor
 
 internal const val DATABASE_NAME = "vitalcare.db"
 
-@Database(entities = [VitalRecordEntity::class], version = 1, exportSchema = true)
+@Database(
+    entities = [VitalRecordEntity::class, FluidEntryEntity::class],
+    version = 2,
+    exportSchema = true,
+)
 @ConstructedBy(VitalCareDatabaseConstructor::class)
 abstract class VitalCareDatabase : RoomDatabase() {
     abstract fun vitalRecordDao(): VitalRecordDao
+    abstract fun fluidEntryDao(): FluidEntryDao
 }
 
 // The Room compiler generates the per-target `actual` implementations.

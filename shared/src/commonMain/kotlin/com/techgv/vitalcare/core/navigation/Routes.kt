@@ -37,6 +37,14 @@ data object AnalyticsRoute
 @Serializable
 data object SettingsRoute
 
+// Fluid balance (F9, D-032) — reached from a Dashboard card, not a bottom tab.
+@Serializable
+data object FluidsRoute
+
+/** [initialType] is a [FluidType] name pre-selecting the form's type (03 §3.12). */
+@Serializable
+data class RecordFluidRoute(val entryId: String? = null, val initialType: String? = null)
+
 /** The four bottom-bar tabs (03 §2). */
 enum class TopLevelDestination(
     val route: Any,

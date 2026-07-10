@@ -165,4 +165,60 @@
     <string name="cd_out_of_range">Out of typical range</string>
     <string name="cd_record_vitals">Record vitals</string>
     <string name="cd_pick_time">Pick time</string>
+    <string name="cd_log_fluid">Log fluid</string>
+
+    <!-- Fluids (F9, 03 §3.11/3.12, D-032) -->
+    <string name="fluid_intake">Intake</string>
+    <string name="fluid_output">Urine</string>
+    <string name="fluid_net">Balance</string>
+    <string name="fluid_goal">Goal</string>
+    <string name="unit_ml">mL</string>
+    <string name="unit_oz">fl oz</string>
+    <string name="unit_ml_name">Millilitres (mL)</string>
+    <string name="unit_oz_name">Fluid ounces (fl oz)</string>
+    <string name="fluid_amount_format">%1$s %2$s</string>
+    <string name="fluid_goal_progress">%1$s of %2$s %3$s · %4$s</string>
+
+    <!-- Dashboard fluid card (FR-FL2/FL7) -->
+    <string name="dashboard_fluid_title">Fluid balance today</string>
+    <string name="dashboard_fluid_empty">No fluids logged today</string>
+    <string name="dashboard_fluid_log">Log fluid</string>
+
+    <!-- Fluids hub (03 §3.11) -->
+    <string name="fluids_title">Fluids</string>
+    <string name="fluids_add_intake">Add intake</string>
+    <string name="fluids_add_urine">Add urine</string>
+    <string name="snackbar_intake_logged">Intake logged ✓</string>
+    <string name="snackbar_urine_logged">Urine logged ✓</string>
+    <string name="fluids_entries_title">Today’s entries</string>
+    <string name="fluids_empty_title">No fluids logged today</string>
+    <string name="fluids_empty_message">Log your first drink or output</string>
+    <string name="fluids_add_custom">Custom…</string>
+    <string name="fluids_trend">Trend</string>
+    <string name="fluids_export_csv">Export fluids CSV</string>
+    <string name="fluids_range_total_intake">Total intake</string>
+    <string name="fluids_range_total_output">Total output</string>
+    <string name="fluid_export_empty">No fluids to export</string>
+
+    <!-- Log Fluid (03 §3.12) -->
+    <string name="log_fluid_title">Log Fluid</string>
+    <string name="log_fluid_edit_title">Edit Fluid</string>
+    <string name="fluid_type">Type</string>
+    <string name="field_amount">Amount</string>
+    <string name="field_note">Note</string>
+    <string name="field_note_hint">Optional, e.g. water</string>
+    <string name="hint_range_amount">1–5000 mL</string>
+    <string name="error_amount_required">Enter an amount</string>
+    <string name="error_amount_range">Enter an amount between 1 and 5000 mL</string>
+    <string name="error_note_too_long">Keep the note under 500 characters</string>
+    <string name="snackbar_fluid_saved">Fluid logged ✓</string>
+    <string name="snackbar_fluid_deleted">Entry deleted</string>
+    <string name="fluid_delete_title">Delete this entry?</string>
+    <string name="fluid_delete_message">This can’t be undone.</string>
+
+    <!-- Settings: Fluids (FR-SE6) -->
+    <string name="settings_fluids">Fluids</string>
+    <string name="settings_volume_unit">Volume unit</string>
+    <string name="settings_daily_goal">Daily intake goal</string>
+    <string name="settings_daily_goal_hint">Target daily fluid intake</string>
 </resources>

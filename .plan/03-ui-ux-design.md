@@ -26,12 +26,14 @@ App launch ──► Dashboard  (no splash gate, no auth)
                 Dashboard ─► History ─► RecordDetails ─► RecordVitals (edit mode)
                 Dashboard ─► Analytics
                 Dashboard ─► Settings ─► (CSV export · Drive connect/backup/restore)
+                Dashboard ─► Fluids (hub) ─► LogFluid (add / edit)   [F9, D-032]
 ```
 
 - Single shared `NavHost` in `App()`; type-safe `@Serializable` routes (D-008). One graph — no
   separate auth graph.
 - **Bottom navigation bar** on the four top-level destinations: Dashboard · History · Analytics · Settings.
-  Record Vitals opens as a full screen pushed on top (not a tab).
+  A **fixed, full-width** bar (icon + always-visible label per tab) anchored to the bottom edge,
+  respecting the system navigation-bar inset. Record Vitals opens as a full screen pushed on top (not a tab).
 - System back: from any top-level tab returns to Dashboard; from Dashboard exits the app.
 - An optional brief branded splash may show on cold start, but it makes **no** routing decision —
   it always lands on Dashboard. (Skippable; not required for MVP.)
@@ -49,7 +51,11 @@ Vertical scroll of cards (16 dp gutters):
 2. **Today card** (FR-D1) — count of today's records; compact list of today's times; tap → History (Today filter).
 3. **Quick actions** (FR-D4) — primary **"Record Vitals"** button (full-width, prominent);
    secondary row: History · Analytics.
-4. **Backup hint (optional, FR-D3)** — shown **only when Drive is connected**: a slim line such as
+4. **Fluid balance card (F9, FR-FL2/FL7)** — "Fluid balance today": intake total, output (urine)
+   total, and **net balance**, plus a **goal progress** indicator toward the daily intake goal
+   (amounts shown in the user's chosen unit). Tap → Fluids hub (§3.11). Empty state: "No fluids
+   logged today" + inline "Log fluid".
+5. **Backup hint (optional, FR-D3)** — shown **only when Drive is connected**: a slim line such as
    "Backed up 2 days ago" or "You have unbacked-up changes · Back up now →". Absent entirely when
    Drive isn't connected (no nagging to set it up). There is no sync/pending status.
 
@@ -126,9 +132,44 @@ Top-level tab. Sectioned list:
    - (Proposed) **Encrypt backups** toggle + password (FR-B7, D-026).
 4. **Privacy** — "Share anonymous usage & crash data" toggle (FR-SE5, D-029); a one-line note that
    it never includes vital values, remarks, or names. On by default.
-5. **About** — version; link to the open-source repository (FR-SE4).
+5. **Fluids (F9, FR-SE6, D-032)** — **Volume unit** selector (Millilitres / Fluid ounces) and
+   **Daily intake goal** (entered in the chosen unit; default 2000 mL). Both persist in settings.
+6. **About** — version; link to the open-source repository (FR-SE4).
 
 *(No Logout row — there is no session.)*
+
+### 3.11 Fluids hub (F9, FR-FL2..FL5, D-032)
+Pushed from the Dashboard fluid card (not a bottom tab). App bar: "Fluids" + overflow
+(**Export fluids CSV**, FR-FL6).
+
+- **Today balance card** — intake total · output (urine) total · **net balance**, with a
+  **goal-progress** ring/bar toward the daily intake goal (reuse `RingProgress`/`BentoTile`).
+  All amounts in the chosen unit.
+- **Quick-log panels (FR-FL3)** — **two separate, color-coded one-tap panels, no mode toggle**
+  (a shared Intake/Output toggle proved error-prone — the active mode is invisible at the moment
+  of tapping a preset). **"Add intake"** (blue tint, drink icon) and **"Add urine"** (peach tint,
+  WC icon), each with its own preset chips (100 / 250 / 500) that log immediately on one tap,
+  plus a "Custom…" chip that opens Log Fluid (§3.12) **pre-set to that panel's type**. Snackbar
+  confirms per type ("Intake logged ✓" / "Urine logged ✓").
+- **Today's entries (FR-FL4)** — list of today's events, each row led by a **type-coded icon chip**
+  (blue drop = intake, peach WC = urine) then type · time · note · amount; tap → edit, delete with
+  confirmation (today-only, BR-2; permanent, D-025).
+- **Trend (FR-FL5)** — range selector Daily · Weekly · Monthly showing per-day **totals** (sum, not
+  average) for intake & output and a net-balance readout (reuse `PillBarChart`). Empty state when no data.
+
+### 3.12 Log Fluid (F9, FR-FL1/FL3, D-032)
+Pushed full-screen. App bar: "Log Fluid" / "Edit Fluid", close (✕) with discard-confirm if dirty.
+
+| Field | Control | Notes |
+|---|---|---|
+| Date | Read-only ("Today, 9 July 2026") | BR-4 |
+| Type | Segmented **Intake / Output**, **pre-selected from the entry point** (§3.11 panel) | Output = urine; still switchable |
+| Amount | Numeric field, unit suffix (mL/oz) + preset chips; **auto-focused with keypad open** in create mode | 1–5000 mL after conversion |
+| Time | Time field, default now → picker | Future rejected |
+| Note | Optional text, counter /500 | e.g. "water", "coffee" |
+
+- Inline validation (FR-FL1, BR-6); amount converted from the display unit to canonical mL before save.
+- **Save** (filled pill, ≥ 56 dp) → Room upsert → snackbar → pop back. Edit updates `updatedAt` (today-only).
 
 ## 4. Design system — "Soft Clinical" (D-030)
 
@@ -221,7 +262,7 @@ Respect platform font scaling (dynamic type) — never fixed-size text (NFR-6); 
 | `RingProgress` | Circular progress ring (e.g., readings logged today) |
 | `BackupStatusRow` | Optional last-backup / unbacked-up hint |
 | `EmptyState` / `ConfirmDialog` / `SectionHeader` | As before, restyled to the system |
-| `BottomNavBar` | Floating pill nav; indigo pill indicator behind the active icon |
+| `BottomNavBar` | **Fixed, full-width** bottom bar anchored to the bottom edge; every tab shows icon **and** label at all times (readability), indigo pill behind the active icon. (Superseded the earlier floating-pill treatment.) |
 
 *(The former `SyncStatusPill` / `SyncStatusIcon` are removed — there is no sync.)*
 
@@ -230,7 +271,9 @@ Respect platform font scaling (dynamic type) — never fixed-size text (NFR-6); 
 Rounded/duotone Material Symbols inside circular tonal chips; consistent stroke. Core set:
 `favorite` (HR), `water_drop` (SpO₂), `monitor_heart` (BP), `history`, `insights`, `settings`,
 `cloud_upload`/`cloud_done` (Drive backup), `download` (CSV export), `restore`, `add` (record FAB),
-`warning`. Small emoji-style chips (🏅 streak) may accent celebratory moments — sparingly.
+`warning`, `local_drink`/`water_drop` (fluid intake), `wc`/`humidity_low` (urine output),
+`local_drink` (Fluids feature, D-032). Small emoji-style chips (🏅 streak) may accent celebratory
+moments — sparingly.
 
 ## 5. Accessibility checklist (NFR-6)
 

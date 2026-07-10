@@ -11,6 +11,7 @@ import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
 import com.techgv.vitalcare.domain.model.HistoryFilter
 import com.techgv.vitalcare.domain.model.ThemePreference
+import com.techgv.vitalcare.domain.model.VolumeUnit
 import com.techgv.vitalcare.domain.repository.SettingsRepository
 import com.techgv.vitalcare.domain.usecase.BackupNow
 import com.techgv.vitalcare.domain.usecase.ConnectDrive
@@ -48,6 +49,9 @@ data class SettingsUiState(
     val isBackingUp: Boolean = false,
     val isRestoring: Boolean = false,
     val showDisconnectConfirm: Boolean = false,
+    // Fluids (FR-SE6, D-032).
+    val volumeUnit: VolumeUnit = VolumeUnit.ML,
+    val dailyFluidGoalMl: Int = 2000,
 )
 
 sealed interface SettingsEvent {
@@ -64,6 +68,8 @@ sealed interface SettingsEvent {
     data object DisconnectClicked : SettingsEvent
     data object DisconnectConfirmed : SettingsEvent
     data object DisconnectDismissed : SettingsEvent
+    data class VolumeUnitSelected(val unit: VolumeUnit) : SettingsEvent
+    data class DailyGoalSelected(val goalMl: Int) : SettingsEvent
 }
 
 sealed interface SettingsEffect {
@@ -108,6 +114,22 @@ class SettingsViewModel(
     private val exportUi = MutableStateFlow(ExportUi())
     private val driveUi = MutableStateFlow(DriveUi())
 
+    private data class Prefs(
+        val profileName: String,
+        val theme: ThemePreference,
+        val telemetryEnabled: Boolean,
+        val volumeUnit: VolumeUnit,
+        val dailyFluidGoalMl: Int,
+    )
+
+    private val prefs = combine(
+        settingsRepository.profileName,
+        settingsRepository.theme,
+        settingsRepository.telemetryEnabled,
+        settingsRepository.volumeUnit,
+        settingsRepository.dailyFluidGoalMl,
+    ) { name, theme, telemetry, unit, goal -> Prefs(name, theme, telemetry, unit, goal) }
+
     private val backupState = combine(
         observeBackupStatus(),
         settingsRepository.autoBackupCadence,
@@ -115,16 +137,14 @@ class SettingsViewModel(
     ) { status, cadence, ui -> Triple(status, cadence, ui) }
 
     val uiState: StateFlow<SettingsUiState> = combine(
-        settingsRepository.profileName,
-        settingsRepository.theme,
-        settingsRepository.telemetryEnabled,
+        prefs,
         exportUi,
         backupState,
-    ) { profileName, theme, telemetryEnabled, export, (status, cadence, drive) ->
+    ) { pref, export, (status, cadence, drive) ->
         SettingsUiState(
-            profileName = profileName,
-            theme = theme,
-            telemetryEnabled = telemetryEnabled,
+            profileName = pref.profileName,
+            theme = pref.theme,
+            telemetryEnabled = pref.telemetryEnabled,
             versionName = appInfo.versionName,
             isExporting = export.isExporting,
             showExportScopeChooser = export.showChooser,
@@ -136,6 +156,8 @@ class SettingsViewModel(
             isBackingUp = drive.isBackingUp,
             isRestoring = drive.isRestoring,
             showDisconnectConfirm = drive.showDisconnectConfirm,
+            volumeUnit = pref.volumeUnit,
+            dailyFluidGoalMl = pref.dailyFluidGoalMl,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -170,6 +192,10 @@ class SettingsViewModel(
             SettingsEvent.DisconnectDismissed ->
                 driveUi.update { it.copy(showDisconnectConfirm = false) }
             SettingsEvent.DisconnectConfirmed -> disconnect()
+            is SettingsEvent.VolumeUnitSelected ->
+                settingsRepository.setVolumeUnit(event.unit)
+            is SettingsEvent.DailyGoalSelected ->
+                settingsRepository.setDailyFluidGoalMl(event.goalMl)
         }
     }
 

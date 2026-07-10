@@ -12,6 +12,7 @@ import com.techgv.vitalcare.domain.backup.BackupRemote
 import com.techgv.vitalcare.domain.backup.BackupScheduler
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
+import com.techgv.vitalcare.domain.repository.FluidRepository
 import com.techgv.vitalcare.domain.repository.SettingsRepository
 import com.techgv.vitalcare.domain.repository.VitalsRepository
 import kotlinx.coroutines.flow.Flow
@@ -52,6 +53,7 @@ class DisconnectDrive(
 /** Upload a full snapshot to Drive's appDataFolder (FR-B3, 05 §5). */
 class BackupNow(
     private val vitalsRepository: VitalsRepository,
+    private val fluidsRepository: FluidRepository,
     private val settings: SettingsRepository,
     private val serializer: BackupSerializer,
     private val remote: BackupRemote,
@@ -64,6 +66,10 @@ class BackupNow(
             is AppResult.Success -> snapshot.value
             is AppResult.Failure -> return snapshot
         }
+        val fluids = when (val snapshot = fluidsRepository.getAll()) {
+            is AppResult.Success -> snapshot.value
+            is AppResult.Failure -> return snapshot
+        }
         val document = serializer.encode(
             BackupFile(
                 schemaVersion = BackupSerializer.SCHEMA_VERSION,
@@ -71,6 +77,7 @@ class BackupNow(
                 appVersion = appInfo.versionName,
                 profileName = settings.profileName.value.ifBlank { null },
                 records = records.map { it.toBackupDto() },
+                fluids = fluids.map { it.toBackupDto() },
             ),
         )
         val token = when (val auth = authorizer.authorize(interactive)) {
@@ -94,10 +101,12 @@ class BackupNow(
  */
 class RestoreFromDrive(
     private val vitalsRepository: VitalsRepository,
+    private val fluidsRepository: FluidRepository,
     private val serializer: BackupSerializer,
     private val remote: BackupRemote,
     private val authorizer: DriveAuthorizer,
     private val merge: MergeBackupRecords,
+    private val mergeFluids: MergeFluidEntries,
 ) {
     suspend operator fun invoke(): AppResult<Int> {
         val token = when (val auth = authorizer.authorize(interactive = true)) {
@@ -112,16 +121,32 @@ class RestoreFromDrive(
             is AppResult.Success -> decoded.value
             is AppResult.Failure -> return decoded
         }
-        val local = when (val snapshot = vitalsRepository.getAll()) {
+
+        val localRecords = when (val snapshot = vitalsRepository.getAll()) {
             is AppResult.Success -> snapshot.value
             is AppResult.Failure -> return snapshot
         }
-        val toWrite = merge(local = local, incoming = backup.records.map { it.toDomain() })
-        if (toWrite.isEmpty()) return AppResult.Success(0)
-        return when (val written = vitalsRepository.upsertAll(toWrite)) {
-            is AppResult.Success -> AppResult.Success(toWrite.size)
-            is AppResult.Failure -> written
+        val recordsToWrite = merge(local = localRecords, incoming = backup.records.map { it.toDomain() })
+        if (recordsToWrite.isNotEmpty()) {
+            when (val written = vitalsRepository.upsertAll(recordsToWrite)) {
+                is AppResult.Success -> Unit
+                is AppResult.Failure -> return written
+            }
         }
+
+        val localFluids = when (val snapshot = fluidsRepository.getAll()) {
+            is AppResult.Success -> snapshot.value
+            is AppResult.Failure -> return snapshot
+        }
+        val fluidsToWrite = mergeFluids(local = localFluids, incoming = backup.fluids.map { it.toDomain() })
+        if (fluidsToWrite.isNotEmpty()) {
+            when (val written = fluidsRepository.upsertAll(fluidsToWrite)) {
+                is AppResult.Success -> Unit
+                is AppResult.Failure -> return written
+            }
+        }
+
+        return AppResult.Success(recordsToWrite.size + fluidsToWrite.size)
     }
 }
 
@@ -148,16 +173,19 @@ data class BackupStatus(
 class ObserveBackupStatus(
     private val settings: SettingsRepository,
     private val vitalsRepository: VitalsRepository,
+    private val fluidsRepository: FluidRepository,
 ) {
     operator fun invoke(): Flow<BackupStatus> = combine(
         settings.driveConnected,
         settings.lastBackupAt,
         vitalsRepository.observeAll(),
-    ) { connected, lastBackupAt, records ->
+        fluidsRepository.observeAll(),
+    ) { connected, lastBackupAt, records, fluids ->
         BackupStatus(
             connected = connected,
             lastBackupAt = lastBackupAt,
-            unbackedCount = records.count { it.updatedAt > lastBackupAt },
+            unbackedCount = records.count { it.updatedAt > lastBackupAt } +
+                fluids.count { it.updatedAt > lastBackupAt },
         )
     }
 }

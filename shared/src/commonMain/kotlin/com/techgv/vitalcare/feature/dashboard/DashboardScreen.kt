@@ -16,6 +16,8 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.MonitorHeart
+import androidx.compose.material.icons.rounded.WaterDrop
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,10 +33,14 @@ import com.techgv.vitalcare.core.designsystem.components.VitalValueDisplay
 import com.techgv.vitalcare.core.designsystem.theme.VitalCareTheme
 import com.techgv.vitalcare.core.util.DashboardDateFormat
 import com.techgv.vitalcare.core.util.TimeFormat
+import com.techgv.vitalcare.domain.model.FluidDayBalance
 import com.techgv.vitalcare.domain.model.VitalRecord
+import com.techgv.vitalcare.domain.model.VolumeUnit
 import com.techgv.vitalcare.domain.model.isBloodPressureOutOfRange
 import com.techgv.vitalcare.domain.model.isHeartRateOutOfRange
 import com.techgv.vitalcare.domain.model.isSpo2OutOfRange
+import com.techgv.vitalcare.feature.fluids.label
+import com.techgv.vitalcare.feature.fluids.signedAmount
 import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -43,7 +49,12 @@ import vitalcare.shared.generated.resources.app_name
 import vitalcare.shared.generated.resources.dashboard_backed_up_days_ago
 import vitalcare.shared.generated.resources.dashboard_backed_up_today
 import vitalcare.shared.generated.resources.dashboard_empty_title
+import vitalcare.shared.generated.resources.dashboard_fluid_empty
+import vitalcare.shared.generated.resources.dashboard_fluid_title
 import vitalcare.shared.generated.resources.dashboard_unbacked_changes
+import vitalcare.shared.generated.resources.fluid_intake
+import vitalcare.shared.generated.resources.fluid_net
+import vitalcare.shared.generated.resources.fluid_output
 import vitalcare.shared.generated.resources.dashboard_latest_reading
 import vitalcare.shared.generated.resources.dashboard_reading_at
 import vitalcare.shared.generated.resources.dashboard_reading_count_one
@@ -51,8 +62,6 @@ import vitalcare.shared.generated.resources.dashboard_readings_count
 import vitalcare.shared.generated.resources.dashboard_record_now
 import vitalcare.shared.generated.resources.dashboard_record_vitals
 import vitalcare.shared.generated.resources.dashboard_today
-import vitalcare.shared.generated.resources.tab_analytics
-import vitalcare.shared.generated.resources.tab_history
 import vitalcare.shared.generated.resources.unit_bpm
 import vitalcare.shared.generated.resources.unit_mmhg
 import vitalcare.shared.generated.resources.unit_percent
@@ -64,8 +73,8 @@ import vitalcare.shared.generated.resources.vital_spo2
 fun DashboardScreen(
     onRecordVitals: () -> Unit,
     onOpenHistory: () -> Unit,
-    onOpenAnalytics: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenFluids: () -> Unit,
 ) {
     val viewModel = koinViewModel<DashboardViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -91,24 +100,17 @@ fun DashboardScreen(
 
         LatestReadingTile(latest = uiState.latest, onRecordNow = onRecordVitals)
         TodayTile(count = uiState.count, times = uiState.times, onClick = onOpenHistory)
+        FluidBalanceTile(
+            balance = uiState.fluidBalance,
+            unit = uiState.volumeUnit,
+            onClick = onOpenFluids,
+        )
 
         PrimaryButton(
             text = stringResource(Res.string.dashboard_record_vitals),
             onClick = onRecordVitals,
             modifier = Modifier.fillMaxWidth(),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SecondaryButton(
-                text = stringResource(Res.string.tab_history),
-                onClick = onOpenHistory,
-                modifier = Modifier.weight(1f),
-            )
-            SecondaryButton(
-                text = stringResource(Res.string.tab_analytics),
-                onClick = onOpenAnalytics,
-                modifier = Modifier.weight(1f),
-            )
-        }
         BackupHintLine(hint = uiState.backupHint, onOpenSettings = onOpenSettings)
         Spacer(Modifier.height(8.dp))
     }
@@ -199,6 +201,60 @@ private fun LatestReadingTile(latest: VitalRecord?, onRecordNow: () -> Unit) {
                 label = stringResource(Res.string.vital_blood_pressure),
                 outOfRange = latest.isBloodPressureOutOfRange(),
             )
+        }
+    }
+}
+
+@Composable
+private fun FluidBalanceTile(
+    balance: FluidDayBalance?,
+    unit: VolumeUnit,
+    onClick: () -> Unit,
+) {
+    BentoTile(
+        tint = VitalCareTheme.colors.tintBlue,
+        icon = Icons.Rounded.WaterDrop,
+        onClick = onClick,
+    ) {
+        Text(
+            text = stringResource(Res.string.dashboard_fluid_title),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Spacer(Modifier.height(8.dp))
+        if (balance == null || balance.isEmpty) {
+            Text(
+                text = stringResource(Res.string.dashboard_fluid_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                VitalValueDisplay(
+                    value = unit.format(balance.intakeMl),
+                    unit = unit.label(),
+                    label = stringResource(Res.string.fluid_intake),
+                    modifier = Modifier.weight(1f),
+                )
+                VitalValueDisplay(
+                    value = unit.format(balance.outputMl),
+                    unit = unit.label(),
+                    label = stringResource(Res.string.fluid_output),
+                    modifier = Modifier.weight(1f),
+                )
+                VitalValueDisplay(
+                    value = signedAmount(balance.netMl, unit),
+                    unit = unit.label(),
+                    label = stringResource(Res.string.fluid_net),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (balance.goalMl > 0) {
+                Spacer(Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    progress = { balance.goalProgress },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

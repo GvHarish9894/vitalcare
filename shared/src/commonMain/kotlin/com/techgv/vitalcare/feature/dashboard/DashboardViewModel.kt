@@ -3,7 +3,11 @@ package com.techgv.vitalcare.feature.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.techgv.vitalcare.core.util.todayLocal
+import com.techgv.vitalcare.domain.model.FluidDayBalance
 import com.techgv.vitalcare.domain.model.VitalRecord
+import com.techgv.vitalcare.domain.model.VolumeUnit
+import com.techgv.vitalcare.domain.repository.SettingsRepository
+import com.techgv.vitalcare.domain.usecase.GetFluidBalanceToday
 import com.techgv.vitalcare.domain.usecase.GetTodaySummary
 import com.techgv.vitalcare.domain.usecase.ObserveBackupStatus
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,11 +36,15 @@ data class DashboardUiState(
     val latest: VitalRecord? = null,
     val times: List<LocalTime> = emptyList(),
     val backupHint: BackupHint? = null,
+    val fluidBalance: FluidDayBalance? = null,
+    val volumeUnit: VolumeUnit = VolumeUnit.ML,
 )
 
 class DashboardViewModel(
     getTodaySummary: GetTodaySummary,
     observeBackupStatus: ObserveBackupStatus,
+    getFluidBalanceToday: GetFluidBalanceToday,
+    settingsRepository: SettingsRepository,
     clock: Clock,
     private val timeZone: TimeZone,
 ) : ViewModel() {
@@ -46,7 +54,9 @@ class DashboardViewModel(
     val uiState: StateFlow<DashboardUiState> = combine(
         getTodaySummary(),
         observeBackupStatus(),
-    ) { summary, backup ->
+        getFluidBalanceToday(),
+        settingsRepository.volumeUnit,
+    ) { summary, backup, fluid, unit ->
         DashboardUiState(
             date = today,
             isLoading = false,
@@ -58,6 +68,8 @@ class DashboardViewModel(
                 backup.unbackedCount > 0 || backup.lastBackupAt == 0L -> BackupHint.Pending
                 else -> BackupHint.BackedUp(daysAgo = daysSince(backup.lastBackupAt))
             },
+            fluidBalance = fluid,
+            volumeUnit = unit,
         )
     }.stateIn(
         scope = viewModelScope,

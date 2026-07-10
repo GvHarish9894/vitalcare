@@ -1,0 +1,114 @@
+name: Firebase App Distribution
+
+# Adapted for VitalCare from the LocalOffers workflow. Builds a signed release
+# APK and ships it to Firebase App Distribution testers. VitalCare is local-first
+# with no backend/DB environments, so the staging/production-DB split from the
+# original is dropped — there is a single release build.
+on:
+  workflow_dispatch:
+    inputs:
+      release_description:
+        description: 'Release notes/description'
+        required: false
+        default: 'Bug fixes and improvements'
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  distribute:
+    name: Build and distribute APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Decode keystore
+        run: |
+          mkdir -p signing
+          echo "${{ secrets.KEYSTORE }}" | base64 --decode > signing/keystore.jks
+
+      - name: Get version name
+        id: version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(./gradlew -q :androidApp:printVersionName)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          mkdir -p renamed_outputs
+
+      # VERSION_CODE is set to the run number so every distributed build is unique.
+      # -PenableCrashlyticsMappingUpload uploads the R8 mapping so testers' crashes
+      # are de-obfuscated in Crashlytics (D-028).
+      - name: Build signed release APK
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          ./gradlew --stacktrace :androidApp:assembleRelease \
+            -PVERSION_CODE=${{ github.run_number }} \
+            -PVERSION_NAME=${{ steps.version.outputs.version }} \
+            -PenableCrashlyticsMappingUpload
+
+      - name: Verify APK signature
+        run: ./gradlew :androidApp:validateSigningRelease
+
+      - name: Set release description
+        id: release_desc
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            DESCRIPTION="${{ github.event.inputs.release_description }}"
+          else
+            DESCRIPTION="Release version ${{ steps.version.outputs.version }}"
+          fi
+          echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
+
+      - name: Rename output
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          find androidApp/build/outputs/apk/release -name "*.apk" \
+            -exec cp {} renamed_outputs/VitalCare_v${VERSION}_release.apk \;
+
+      - name: Clean up secrets
+        if: always()
+        run: rm -f signing/keystore.jks
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VitalCare_v${{ steps.version.outputs.version }}_release
+          path: renamed_outputs/VitalCare_v${{ steps.version.outputs.version }}_release.apk
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        if: env.FIREBASE_APP_ID != ''
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          groups: testers
+          file: renamed_outputs/VitalCare_v${{ steps.version.outputs.version }}_release.apk
+          releaseNotes: |
+            Version ${{ steps.version.outputs.version }} (${{ github.run_number }})
+            Built on: ${{ steps.date.outputs.date }}
+            ${{ steps.release_desc.outputs.description }}

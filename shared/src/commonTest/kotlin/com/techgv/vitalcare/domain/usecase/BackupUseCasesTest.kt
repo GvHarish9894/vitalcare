@@ -1,5 +1,6 @@
 package com.techgv.vitalcare.domain.usecase
 
+import com.techgv.vitalcare.FakeFluidRepository
 import com.techgv.vitalcare.FakeVitalsRepository
 import com.techgv.vitalcare.Fixtures
 import com.techgv.vitalcare.core.util.AppError
@@ -12,10 +13,11 @@ import com.techgv.vitalcare.domain.backup.BackupRemote
 import com.techgv.vitalcare.domain.backup.BackupScheduler
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
+import com.techgv.vitalcare.domain.model.FluidType
 import com.techgv.vitalcare.domain.model.ThemePreference
+import com.techgv.vitalcare.domain.model.VolumeUnit
 import com.techgv.vitalcare.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,6 +31,8 @@ private class FakeSettingsRepository : SettingsRepository {
     override val driveConnected = MutableStateFlow(false)
     override val lastBackupAt = MutableStateFlow(0L)
     override val autoBackupCadence = MutableStateFlow(AutoBackupCadence.OFF)
+    override val volumeUnit = MutableStateFlow(VolumeUnit.ML)
+    override val dailyFluidGoalMl = MutableStateFlow(2000)
 
     override fun setTheme(value: ThemePreference) { theme.value = value }
     override fun setProfileName(value: String) { profileName.value = value }
@@ -36,6 +40,8 @@ private class FakeSettingsRepository : SettingsRepository {
     override fun setDriveConnected(value: Boolean) { driveConnected.value = value }
     override fun setLastBackupAt(value: Long) { lastBackupAt.value = value }
     override fun setAutoBackupCadence(value: AutoBackupCadence) { autoBackupCadence.value = value }
+    override fun setVolumeUnit(value: VolumeUnit) { volumeUnit.value = value }
+    override fun setDailyFluidGoalMl(value: Int) { dailyFluidGoalMl.value = value }
 }
 
 private class FakeAuthorizer(
@@ -69,6 +75,7 @@ private class FakeScheduler : BackupScheduler {
 class BackupUseCasesTest {
 
     private val vitals = FakeVitalsRepository()
+    private val fluids = FakeFluidRepository()
     private val settings = FakeSettingsRepository()
     private val authorizer = FakeAuthorizer()
     private val remote = FakeRemote()
@@ -76,11 +83,11 @@ class BackupUseCasesTest {
     private val serializer = BackupSerializer()
 
     private fun backupNow() = BackupNow(
-        vitals, settings, serializer, remote, authorizer, AppInfo("1.0"), Fixtures.clock,
+        vitals, fluids, settings, serializer, remote, authorizer, AppInfo("1.0"), Fixtures.clock,
     )
 
     private fun restore() = RestoreFromDrive(
-        vitals, serializer, remote, authorizer, MergeBackupRecords(),
+        vitals, fluids, serializer, remote, authorizer, MergeBackupRecords(), MergeFluidEntries(),
     )
 
     @Test
@@ -89,15 +96,22 @@ class BackupUseCasesTest {
             Fixtures.record(id = "a", remarks = "Morning, resting"),
             Fixtures.record(id = "b", spo2 = null, heartRate = 68, systolic = null, diastolic = null),
         )
+        fluids.seed(
+            Fixtures.fluid(id = "f1", amountMl = 250, note = "water"),
+            Fixtures.fluid(id = "f2", type = FluidType.OUTPUT, amountMl = 300),
+        )
         assertIs<AppResult.Success<Unit>>(backupNow()(interactive = true))
-        val before = vitals.current().toSet()
+        val recordsBefore = vitals.current().toSet()
+        val fluidsBefore = fluids.current().toSet()
 
-        // Wipe local and restore — every record must come back identical.
+        // Wipe local and restore — every record & fluid must come back identical.
         vitals.seed()
+        fluids.seed()
         val restored = assertIs<AppResult.Success<Int>>(restore()())
 
-        assertEquals(2, restored.value)
-        assertEquals(before, vitals.current().toSet())
+        assertEquals(4, restored.value) // 2 records + 2 fluids (D-032)
+        assertEquals(recordsBefore, vitals.current().toSet())
+        assertEquals(fluidsBefore, fluids.current().toSet())
     }
 
     @Test

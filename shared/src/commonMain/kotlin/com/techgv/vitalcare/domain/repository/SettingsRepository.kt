@@ -2,6 +2,7 @@ package com.techgv.vitalcare.domain.repository
 
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
 import com.techgv.vitalcare.domain.model.ThemePreference
+import com.techgv.vitalcare.domain.model.VolumeUnit
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -20,6 +21,10 @@ interface SettingsRepository {
     val lastBackupAt: StateFlow<Long>
     val autoBackupCadence: StateFlow<AutoBackupCadence>
 
+    /** Fluid display unit and daily intake goal in canonical mL (FR-SE6, D-032). */
+    val volumeUnit: StateFlow<VolumeUnit>
+    val dailyFluidGoalMl: StateFlow<Int>
+
     fun setTheme(value: ThemePreference)
     fun setProfileName(value: String)
     fun setTelemetryEnabled(value: Boolean)
@@ -27,4 +32,7 @@ interface SettingsRepository {
     fun setDriveConnected(value: Boolean)
     fun setLastBackupAt(value: Long)
     fun setAutoBackupCadence(value: AutoBackupCadence)
+
+    fun setVolumeUnit(value: VolumeUnit)
+    fun setDailyFluidGoalMl(value: Int)
 }

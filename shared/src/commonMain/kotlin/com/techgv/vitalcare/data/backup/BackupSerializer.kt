@@ -32,7 +32,8 @@ class BackupSerializer {
     }
 
     companion object {
-        const val SCHEMA_VERSION = 1
+        // v2 adds the `fluids` array (D-032). Decoding still tolerates v1 backups.
+        const val SCHEMA_VERSION = 2
         const val FILE_NAME = "vitalcare-backup.json"
         const val MIME_TYPE = "application/json"
     }

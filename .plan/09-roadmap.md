@@ -78,6 +78,26 @@ optional Drive OAuth setup), `CONTRIBUTING`; verify no committed secrets (D-027)
 **Acceptance:** fresh clone builds and runs with no config; release builds pass full regression;
 no secrets in git history; store review requirements met.
 
+## Phase 10 — Fluid Balance (F9, D-032) *(post-release feature; builds on Phases 1–8)*
+**Scope:** a **separate** fluid-tracking feature (water intake + urine output), independent of
+vitals.
+- **Data:** `FluidEntry`/`FluidType` domain model; `fluid_entries` Room table; `FluidEntryDao`;
+  `VitalCareDatabase` → `version = 2` + `MIGRATION_1_2`; `FluidRepository`(`Impl`) + mappers.
+- **Domain:** `FluidValidator` (amount 1–5000 mL, time-not-future, note ≤ 500); use cases
+  `SaveFluidEntry`, `GetFluidEntry`/`ObserveFluidEntry`, `DeleteFluidEntry`, `GetFluidBalanceToday`
+  (totals + net + goal progress), `GetFluidAnalytics` (daily **sums**, net balance), `ExportFluidCsv`.
+- **Settings:** volume unit (mL/oz) + daily intake goal (FR-SE6); canonical-mL storage with
+  display-unit conversion.
+- **UI:** Fluids hub (`feature/fluids`) reached from a Dashboard "Fluid balance today" card (no new
+  tab); Log Fluid add/edit screen; reuse the Soft-Clinical design system + `PillBarChart`.
+- **Backup/export:** backup `schemaVersion` → 2 with a `fluids` array (BackupNow/Restore/merge);
+  separate fluids CSV.
+
+**Acceptance:** FR-FL1..FL7, FR-SE6; amount/unit validation + mL↔oz conversion unit-tested; daily
+totals & net balance correct (sums, not averages); `MIGRATION_1_2` upgrades a v1 DB with vitals
+intact; backup round-trips fluids losslessly and a v1 backup still restores (NFR-5, D-024/D-032);
+builds and tests green on Android + iOS.
+
 ---
 
 ### Sequencing rules

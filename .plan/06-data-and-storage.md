@@ -29,6 +29,20 @@ data class VitalRecord(
 data class Profile(
     val name: String,                // may be blank / unset
 )
+
+// Fluid balance (F9, D-032) — a SEPARATE concept from VitalRecord. One row per discrete
+// intake/output event; the app sums them per day.
+data class FluidEntry(
+    val id: String,                  // UUID v4
+    val date: LocalDate,             // civil date — auto, immutable (BR-4)
+    val time: LocalTime,             // civil time — editable
+    val type: FluidType,             // INTAKE | OUTPUT (OUTPUT = urine)
+    val amountMl: Int,               // canonical millilitres, 1..5000, always > 0
+    val note: String?,               // optional (≤ 500 chars), null = none
+    val createdAt: Long,             // epoch millis UTC
+    val updatedAt: Long,             // epoch millis UTC — restore-merge LWW (D-024)
+)
+enum class FluidType { INTAKE, OUTPUT }
 ```
 
 - **IDs are client-generated UUIDs** so records have stable identities independent of any server;
@@ -76,8 +90,24 @@ There is no `patients` table (D-019). The optional profile name is a single valu
 }
 ```
 
+### `fluid_entries` (D-032)
+| Column | Type | Notes |
+|---|---|---|
+| `id` | TEXT PK | UUID |
+| `date` | TEXT, **indexed** | ISO-8601 `yyyy-MM-dd` |
+| `time` | TEXT | ISO-8601 `HH:mm` |
+| `type` | TEXT | `INTAKE` / `OUTPUT` (enum name) |
+| `amountMl` | INTEGER | canonical millilitres, 1..5000 |
+| `note` | TEXT, nullable | ≤ 500 chars |
+| `createdAt` / `updatedAt` | INTEGER | epoch millis UTC |
+
+`FluidEntryDao` mirrors `VitalRecordDao` (upsert/upsertAll, getById, observeByDate,
+observeByDateRange, observeAll, snapshot getAll/getByDateRange, hardDelete). Index on `date`.
+
 **Migrations:** never destructive in production. Every schema change ships a `Migration`;
-`fallbackToDestructiveMigration` is allowed only in debug builds.
+`fallbackToDestructiveMigration` is allowed only in debug builds. **Adding `fluid_entries` bumps
+`VitalCareDatabase` to `version = 2` with `MIGRATION_1_2`** (`CREATE TABLE fluid_entries …` +
+`CREATE INDEX index_fluid_entries_date …`); `vital_records` is unchanged (D-032).
 
 ## 3. CSV export format (D-023, RFC 4180)
 
@@ -98,6 +128,17 @@ date,time,spo2,heart_rate,systolic,diastolic,remarks,created_at,updated_at
 - CSV is **export-only** (human/spreadsheet consumption). Round-trip restore uses the JSON
   backup, not CSV.
 
+### Fluids CSV (D-032)
+
+Fluid entries export as a **separate** CSV (a fluid event has a different shape from a vitals
+reading). Amounts are the canonical mL value.
+
+```
+date,time,type,amount_ml,note,created_at,updated_at
+2026-07-09,09:00,INTAKE,250,water,1720515600000,1720515600000
+2026-07-09,11:30,OUTPUT,300,,1720524600000,1720524600000
+```
+
 ## 4. JSON backup format (D-023, kotlinx.serialization)
 
 A single document representing a full snapshot. `schemaVersion` lets a future app read older
@@ -105,7 +146,7 @@ backups; restore rejects a `schemaVersion` newer than it understands with a clea
 
 ```jsonc
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,               // bumped 1→2 to add fluids (D-032)
   "exportedAt": 1720080000000,      // epoch millis UTC
   "appVersion": "1.0.0",
   "profileName": "Amma",            // optional (D-019), omitted if unset
@@ -119,9 +160,21 @@ backups; restore rejects a `schemaVersion` newer than it understands with a clea
       "createdAt": 1719990600000,
       "updatedAt": 1719990600000
     }
+  ],
+  "fluids": [                       // D-032; defaulted to [] so v1 backups still decode
+    {
+      "id": "a91c…",
+      "date": "2026-07-09", "time": "09:00",
+      "type": "INTAKE", "amountMl": 250, "note": "water",
+      "createdAt": 1720515600000, "updatedAt": 1720515600000
+    }
   ]
 }
 ```
+
+- **Back-compat:** the serializer uses `ignoreUnknownKeys` + defaulted fields, so a v2 app reads a
+  v1 backup (`fluids` defaults to empty) and restore rejects only `schemaVersion` **above** what it
+  understands. Fluids merge by the same union-by-id / newer-`updatedAt`-wins rule (D-024).
 
 - **Drive storage:** one file named e.g. `vitalcare-backup.json` in the Drive **`appDataFolder`**
   (hidden app space, D-021/D-023), overwritten on each backup (full snapshot).
@@ -165,3 +218,8 @@ Computed from Room (the only store):
 - **Daily:** today's records ordered by time.
 - **Weekly/Monthly:** `observeByDateRange` for last 7/30 days, grouped by `date` in the use case;
   per-day averages + range min/max/avg computed in `GetAnalytics` use case (pure, testable).
+
+**Fluid analytics (F9, D-032)** use a **different aggregation** — daily **sums**, not averages.
+`GetFluidBalanceToday` combines today's entries into intake/output/net totals + goal progress;
+`GetFluidAnalytics` produces per-day **total** intake & output series and a net-balance series
+over the range (weekly/monthly), with range totals. `GetAnalytics` (vitals) is left untouched.
