@@ -12,6 +12,7 @@ import com.techgv.vitalcare.domain.model.AutoBackupCadence
 import com.techgv.vitalcare.domain.model.HistoryFilter
 import com.techgv.vitalcare.domain.model.ReminderPreferences
 import com.techgv.vitalcare.domain.model.ThemePreference
+import com.techgv.vitalcare.domain.model.VolumeUnit
 import com.techgv.vitalcare.domain.reminders.ReminderPermission
 import com.techgv.vitalcare.domain.reminders.ReminderPermissionMonitor
 import com.techgv.vitalcare.domain.reminders.ReminderPermissionStatus
@@ -54,6 +55,9 @@ data class SettingsUiState(
     val isBackingUp: Boolean = false,
     val isRestoring: Boolean = false,
     val showDisconnectConfirm: Boolean = false,
+    // Fluids (FR-SE6, D-033).
+    val volumeUnit: VolumeUnit = VolumeUnit.ML,
+    val dailyFluidGoalMl: Int = 2000,
     // Reminders (D-032): toggle stores intent; blocked = on but no permission.
     val reminders: ReminderPreferences = ReminderPreferences(),
     val reminderPermissionBlocked: Boolean = false,
@@ -75,6 +79,8 @@ sealed interface SettingsEvent {
     data object DisconnectClicked : SettingsEvent
     data object DisconnectConfirmed : SettingsEvent
     data object DisconnectDismissed : SettingsEvent
+    data class VolumeUnitSelected(val unit: VolumeUnit) : SettingsEvent
+    data class DailyGoalSelected(val goalMl: Int) : SettingsEvent
     data class ReminderToggled(val enabled: Boolean) : SettingsEvent
     data class ReminderIntervalSelected(val hours: Int) : SettingsEvent
     data object ReminderFromClicked : SettingsEvent
@@ -138,6 +144,22 @@ class SettingsViewModel(
     private val driveUi = MutableStateFlow(DriveUi())
     private val reminderPickers = MutableStateFlow(ReminderPickers())
 
+    private data class Prefs(
+        val profileName: String,
+        val theme: ThemePreference,
+        val telemetryEnabled: Boolean,
+        val volumeUnit: VolumeUnit,
+        val dailyFluidGoalMl: Int,
+    )
+
+    private val prefs = combine(
+        settingsRepository.profileName,
+        settingsRepository.theme,
+        settingsRepository.telemetryEnabled,
+        settingsRepository.volumeUnit,
+        settingsRepository.dailyFluidGoalMl,
+    ) { name, theme, telemetry, unit, goal -> Prefs(name, theme, telemetry, unit, goal) }
+
     private val backupState = combine(
         observeBackupStatus(),
         settingsRepository.autoBackupCadence,
@@ -150,23 +172,18 @@ class SettingsViewModel(
         reminderPickers,
     ) { preferences, permission, pickers -> Triple(preferences, permission, pickers) }
 
-    private val basics = combine(
-        settingsRepository.profileName,
-        settingsRepository.theme,
-        settingsRepository.telemetryEnabled,
-    ) { profileName, theme, telemetryEnabled -> Triple(profileName, theme, telemetryEnabled) }
-
+    // `prefs` already carries profile/theme/telemetry + fluid unit/goal, so it
+    // replaces master's separate `basics` group here.
     val uiState: StateFlow<SettingsUiState> = combine(
-        basics,
+        prefs,
         exportUi,
         backupState,
         reminderState,
-    ) { (profileName, theme, telemetryEnabled), export, (status, cadence, drive),
-        (reminders, permission, pickers) ->
+    ) { pref, export, (status, cadence, drive), (reminders, permission, pickers) ->
         SettingsUiState(
-            profileName = profileName,
-            theme = theme,
-            telemetryEnabled = telemetryEnabled,
+            profileName = pref.profileName,
+            theme = pref.theme,
+            telemetryEnabled = pref.telemetryEnabled,
             versionName = appInfo.versionName,
             isExporting = export.isExporting,
             showExportScopeChooser = export.showChooser,
@@ -178,6 +195,8 @@ class SettingsViewModel(
             isBackingUp = drive.isBackingUp,
             isRestoring = drive.isRestoring,
             showDisconnectConfirm = drive.showDisconnectConfirm,
+            volumeUnit = pref.volumeUnit,
+            dailyFluidGoalMl = pref.dailyFluidGoalMl,
             reminders = reminders,
             reminderPermissionBlocked =
                 reminders.enabled && permission == ReminderPermissionStatus.DENIED,
@@ -217,6 +236,10 @@ class SettingsViewModel(
             SettingsEvent.DisconnectDismissed ->
                 driveUi.update { it.copy(showDisconnectConfirm = false) }
             SettingsEvent.DisconnectConfirmed -> disconnect()
+            is SettingsEvent.VolumeUnitSelected ->
+                settingsRepository.setVolumeUnit(event.unit)
+            is SettingsEvent.DailyGoalSelected ->
+                settingsRepository.setDailyFluidGoalMl(event.goalMl)
             is SettingsEvent.ReminderToggled ->
                 updateReminders { it.copy(enabled = event.enabled) }
             is SettingsEvent.ReminderIntervalSelected ->

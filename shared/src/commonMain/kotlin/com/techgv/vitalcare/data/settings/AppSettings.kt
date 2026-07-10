@@ -4,6 +4,7 @@ import com.russhwolf.settings.Settings
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
 import com.techgv.vitalcare.domain.model.ReminderPreferences
 import com.techgv.vitalcare.domain.model.ThemePreference
+import com.techgv.vitalcare.domain.model.VolumeUnit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +36,13 @@ class AppSettings(private val settings: Settings) {
     private val _autoBackupCadence = MutableStateFlow(readCadence())
     val autoBackupCadence: StateFlow<AutoBackupCadence> = _autoBackupCadence.asStateFlow()
 
+    // Fluid preferences (D-033) — display unit and daily intake goal (canonical mL).
+    private val _volumeUnit = MutableStateFlow(readVolumeUnit())
+    val volumeUnit: StateFlow<VolumeUnit> = _volumeUnit.asStateFlow()
+
+    private val _dailyFluidGoalMl =
+        MutableStateFlow(settings.getInt(KEY_FLUID_GOAL_ML, DEFAULT_FLUID_GOAL_ML))
+    val dailyFluidGoalMl: StateFlow<Int> = _dailyFluidGoalMl.asStateFlow()
     private val _reminderPreferences = MutableStateFlow(readReminderPreferences())
     val reminderPreferences: StateFlow<ReminderPreferences> = _reminderPreferences.asStateFlow()
 
@@ -68,6 +76,16 @@ class AppSettings(private val settings: Settings) {
         _autoBackupCadence.value = value
     }
 
+    fun setVolumeUnit(value: VolumeUnit) {
+        settings.putString(KEY_VOLUME_UNIT, value.name)
+        _volumeUnit.value = value
+    }
+
+    fun setDailyFluidGoalMl(value: Int) {
+        settings.putInt(KEY_FLUID_GOAL_ML, value)
+        _dailyFluidGoalMl.value = value
+    }
+
     fun setReminderPreferences(value: ReminderPreferences) {
         settings.putBoolean(KEY_REMINDERS_ENABLED, value.enabled)
         settings.putInt(KEY_REMINDER_INTERVAL, value.intervalHours)
@@ -85,6 +103,11 @@ class AppSettings(private val settings: Settings) {
     private fun readCadence(): AutoBackupCadence {
         val raw = settings.getString(KEY_AUTO_BACKUP, AutoBackupCadence.OFF.name)
         return AutoBackupCadence.entries.firstOrNull { it.name == raw } ?: AutoBackupCadence.OFF
+    }
+
+    private fun readVolumeUnit(): VolumeUnit {
+        val raw = settings.getString(KEY_VOLUME_UNIT, VolumeUnit.ML.name)
+        return VolumeUnit.entries.firstOrNull { it.name == raw } ?: VolumeUnit.ML
     }
 
     private fun readReminderPreferences(): ReminderPreferences {
@@ -113,6 +136,9 @@ class AppSettings(private val settings: Settings) {
         const val KEY_DRIVE_CONNECTED = "drive_connected"
         const val KEY_LAST_BACKUP_AT = "last_backup_at"
         const val KEY_AUTO_BACKUP = "auto_backup_cadence"
+        const val KEY_VOLUME_UNIT = "volume_unit"
+        const val KEY_FLUID_GOAL_ML = "daily_fluid_goal_ml"
+        const val DEFAULT_FLUID_GOAL_ML = 2000
         const val KEY_REMINDERS_ENABLED = "reminders_enabled"
         const val KEY_REMINDER_INTERVAL = "reminder_interval_hours"
         const val KEY_REMINDER_FROM = "reminder_active_from"

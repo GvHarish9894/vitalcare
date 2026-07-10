@@ -9,8 +9,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import com.techgv.vitalcare.domain.model.FluidType
 import com.techgv.vitalcare.feature.analytics.AnalyticsScreen
 import com.techgv.vitalcare.feature.dashboard.DashboardScreen
+import com.techgv.vitalcare.feature.fluids.FluidsScreen
+import com.techgv.vitalcare.feature.fluids.LogFluidScreen
 import com.techgv.vitalcare.feature.history.HistoryScreen
 import com.techgv.vitalcare.feature.history.RecordDetailsScreen
 import com.techgv.vitalcare.feature.settings.SettingsScreen
@@ -41,8 +44,8 @@ fun VitalCareNavHost(
             DashboardScreen(
                 onRecordVitals = { navController.navigate(RecordVitalsRoute()) },
                 onOpenHistory = { navController.navigateToTopLevel(HistoryRoute) },
-                onOpenAnalytics = { navController.navigateToTopLevel(AnalyticsRoute) },
                 onOpenSettings = { navController.navigateToTopLevel(SettingsRoute) },
+                onOpenFluids = { navController.navigate(FluidsRoute) },
             )
         }
         composable<RecordVitalsRoute> { entry ->
@@ -74,6 +77,28 @@ fun VitalCareNavHost(
         }
         composable<SettingsRoute> {
             SettingsScreen(showSnackbar = showSnackbar)
+        }
+        composable<FluidsRoute> {
+            FluidsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onEditEntry = { entryId ->
+                    navController.navigate(RecordFluidRoute(entryId = entryId))
+                },
+                onAddCustom = { type ->
+                    navController.navigate(RecordFluidRoute(initialType = type.name))
+                },
+                showSnackbar = showSnackbar,
+            )
+        }
+        composable<RecordFluidRoute> { entry ->
+            val route = entry.toRoute<RecordFluidRoute>()
+            LogFluidScreen(
+                entryId = route.entryId,
+                initialType = route.initialType
+                    ?.let { name -> FluidType.entries.firstOrNull { it.name == name } },
+                onNavigateBack = { navController.popBackStack() },
+                showSnackbar = showSnackbar,
+            )
         }
     }
 }

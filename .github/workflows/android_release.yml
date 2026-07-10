@@ -1,0 +1,166 @@
+name: Android Release
+
+# Adapted for VitalCare (KMP: :androidApp + :shared) from the LocalOffers
+# release workflow. Manual trigger; bumps version.properties, builds a signed
+# AAB + APK, uploads the R8 mapping to Firebase Crashlytics, and cuts a GitHub
+# release.
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      release_notes:
+        description: 'Optional release notes (appended to auto-generated notes)'
+        required: false
+        default: ''
+
+jobs:
+  validate:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Run shared unit tests
+        run: ./gradlew :shared:testAndroidHostTest
+
+  release:
+    name: Build and Release
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Get current version
+        id: current_version
+        run: |
+          VERSION_NAME=$(./gradlew -q :androidApp:printVersionName)
+          echo "version=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION_NAME"
+
+      - name: Calculate new version
+        id: new_version
+        run: |
+          CURRENT="${{ steps.current_version.outputs.version }}"
+          IFS='.' read -r major minor patch <<< "$CURRENT"
+          case "${{ inputs.bump_type }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          NEW_VERSION="$major.$minor.$patch"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Bump version.properties
+        id: bump
+        run: |
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          CURRENT_CODE=$(grep -E '^VERSION_CODE=' version.properties | cut -d= -f2)
+          NEW_CODE=$((CURRENT_CODE + 1))
+          sed -i "s/^VERSION_NAME=.*/VERSION_NAME=${NEW_VERSION}/" version.properties
+          sed -i "s/^VERSION_CODE=.*/VERSION_CODE=${NEW_CODE}/" version.properties
+          echo "code=$NEW_CODE" >> $GITHUB_OUTPUT
+          echo "Bumped to VERSION_NAME=$NEW_VERSION VERSION_CODE=$NEW_CODE"
+          cat version.properties
+
+      - name: Decode keystore
+        run: |
+          mkdir -p signing
+          echo "${{ secrets.KEYSTORE }}" | base64 --decode > signing/keystore.jks
+
+      # Builds the signed AAB + APK. Passing -PenableCrashlyticsMappingUpload makes
+      # the Crashlytics Gradle plugin upload the R8 mapping so release crash traces
+      # are de-obfuscated in Firebase Crashlytics (D-028). No-ops for local builds.
+      - name: Build Release APK & AAB
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          ./gradlew --stacktrace \
+            :androidApp:assembleRelease :androidApp:bundleRelease \
+            -PenableCrashlyticsMappingUpload
+
+      - name: Locate build artifacts
+        id: artifacts
+        run: |
+          APK=$(find androidApp/build/outputs/apk/release -name "*.apk" | head -n 1)
+          AAB=$(find androidApp/build/outputs/bundle/release -name "*.aab" | head -n 1)
+          test -n "$APK" || { echo "APK not found"; exit 1; }
+          test -n "$AAB" || { echo "AAB not found"; exit 1; }
+          echo "apk=$APK" >> $GITHUB_OUTPUT
+          echo "aab=$AAB" >> $GITHUB_OUTPUT
+
+      - name: Rename artifacts
+        id: rename
+        run: |
+          VERSION="${{ steps.new_version.outputs.version }}"
+          mkdir -p renamed_outputs
+          APK_OUT="renamed_outputs/VitalCare_v${VERSION}_release.apk"
+          AAB_OUT="renamed_outputs/VitalCare_v${VERSION}_release.aab"
+          cp "${{ steps.artifacts.outputs.apk }}" "$APK_OUT"
+          cp "${{ steps.artifacts.outputs.aab }}" "$AAB_OUT"
+          echo "apk=$APK_OUT" >> $GITHUB_OUTPUT
+          echo "aab=$AAB_OUT" >> $GITHUB_OUTPUT
+
+      - name: Clean up secrets
+        if: always()
+        run: rm -f signing/keystore.jks
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.properties
+          git commit -m "chore: bump version to ${{ steps.new_version.outputs.version }} (code ${{ steps.bump.outputs.code }})"
+          git push origin HEAD:${{ github.ref_name }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.new_version.outputs.version }}
+          name: Release v${{ steps.new_version.outputs.version }}
+          generate_release_notes: true
+          body: ${{ inputs.release_notes }}
+          files: |
+            ${{ steps.rename.outputs.apk }}
+            ${{ steps.rename.outputs.aab }}

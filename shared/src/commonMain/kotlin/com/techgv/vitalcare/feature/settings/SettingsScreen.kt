@@ -2,6 +2,8 @@ package com.techgv.vitalcare.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,6 +53,8 @@ import com.techgv.vitalcare.domain.model.AutoBackupCadence
 import com.techgv.vitalcare.domain.model.HistoryFilter
 import com.techgv.vitalcare.domain.model.ReminderPreferences
 import com.techgv.vitalcare.domain.model.ThemePreference
+import com.techgv.vitalcare.domain.model.VolumeUnit
+import com.techgv.vitalcare.feature.fluids.formatAmount
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import vitalcare.shared.generated.resources.Res
@@ -104,9 +108,15 @@ import vitalcare.shared.generated.resources.snackbar_restore_no_backup
 import vitalcare.shared.generated.resources.snackbar_restore_unsupported
 import vitalcare.shared.generated.resources.snackbar_restore_up_to_date
 import vitalcare.shared.generated.resources.error_generic
+import vitalcare.shared.generated.resources.settings_daily_goal
+import vitalcare.shared.generated.resources.settings_daily_goal_hint
 import vitalcare.shared.generated.resources.settings_export_csv
 import vitalcare.shared.generated.resources.settings_export_csv_subtitle
+import vitalcare.shared.generated.resources.settings_fluids
 import vitalcare.shared.generated.resources.settings_google_drive
+import vitalcare.shared.generated.resources.settings_volume_unit
+import vitalcare.shared.generated.resources.unit_ml_name
+import vitalcare.shared.generated.resources.unit_oz_name
 import vitalcare.shared.generated.resources.settings_privacy
 import vitalcare.shared.generated.resources.settings_privacy_note
 import vitalcare.shared.generated.resources.settings_privacy_toggle
@@ -222,6 +232,14 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
                 )
             }
         }
+
+        SectionHeader(stringResource(Res.string.settings_fluids))
+        FluidsSettingsSection(
+            unit = uiState.volumeUnit,
+            goalMl = uiState.dailyFluidGoalMl,
+            onSelectUnit = { viewModel.onEvent(SettingsEvent.VolumeUnitSelected(it)) },
+            onSelectGoal = { viewModel.onEvent(SettingsEvent.DailyGoalSelected(it)) },
+        )
 
         SectionHeader(stringResource(Res.string.settings_about))
         val uriHandler = LocalUriHandler.current
@@ -528,6 +546,84 @@ private fun DriveSection(
                 enabled = true,
                 onClick = { onEvent(SettingsEvent.DisconnectClicked) },
             )
+        }
+    }
+}
+
+private val GoalPresetsMl = listOf(1500, 2000, 2500, 3000)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FluidsSettingsSection(
+    unit: VolumeUnit,
+    goalMl: Int,
+    onSelectUnit: (VolumeUnit) -> Unit,
+    onSelectGoal: (Int) -> Unit,
+) {
+    SettingsCard {
+        Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp)) {
+            Text(
+                text = stringResource(Res.string.settings_volume_unit),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                VolumeUnit.entries.forEach { u ->
+                    FilterChip(
+                        selected = u == unit,
+                        onClick = { onSelectUnit(u) },
+                        shape = CircleShape,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                        label = {
+                            Text(
+                                text = stringResource(
+                                    when (u) {
+                                        VolumeUnit.ML -> Res.string.unit_ml_name
+                                        VolumeUnit.OZ -> Res.string.unit_oz_name
+                                    },
+                                ),
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        },
+                    )
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(Res.string.settings_daily_goal),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = stringResource(Res.string.settings_daily_goal_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                GoalPresetsMl.forEach { goal ->
+                    FilterChip(
+                        selected = goal == goalMl,
+                        onClick = { onSelectGoal(goal) },
+                        shape = CircleShape,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                        label = {
+                            Text(
+                                text = formatAmount(goal, unit),
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        },
+                    )
+                }
+            }
         }
     }
 }

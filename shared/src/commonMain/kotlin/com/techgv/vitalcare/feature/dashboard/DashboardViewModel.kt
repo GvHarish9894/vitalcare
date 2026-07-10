@@ -3,11 +3,14 @@ package com.techgv.vitalcare.feature.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.techgv.vitalcare.core.util.todayLocal
+import com.techgv.vitalcare.domain.model.FluidDayBalance
 import com.techgv.vitalcare.domain.model.VitalRecord
+import com.techgv.vitalcare.domain.model.VolumeUnit
 import com.techgv.vitalcare.domain.reminders.ReminderPermission
 import com.techgv.vitalcare.domain.reminders.ReminderPermissionMonitor
 import com.techgv.vitalcare.domain.reminders.ReminderPermissionStatus
 import com.techgv.vitalcare.domain.repository.SettingsRepository
+import com.techgv.vitalcare.domain.usecase.GetFluidBalanceToday
 import com.techgv.vitalcare.domain.usecase.GetTodaySummary
 import com.techgv.vitalcare.domain.usecase.ObserveBackupStatus
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,6 +39,8 @@ data class DashboardUiState(
     val latest: VitalRecord? = null,
     val times: List<LocalTime> = emptyList(),
     val backupHint: BackupHint? = null,
+    val fluidBalance: FluidDayBalance? = null,
+    val volumeUnit: VolumeUnit = VolumeUnit.ML,
     /** D-032: reminders enabled but notifications blocked at the OS level. */
     val reminderPermissionBlocked: Boolean = false,
 )
@@ -43,6 +48,7 @@ data class DashboardUiState(
 class DashboardViewModel(
     getTodaySummary: GetTodaySummary,
     observeBackupStatus: ObserveBackupStatus,
+    getFluidBalanceToday: GetFluidBalanceToday,
     settingsRepository: SettingsRepository,
     reminderPermissionMonitor: ReminderPermissionMonitor,
     private val reminderPermission: ReminderPermission,
@@ -52,12 +58,19 @@ class DashboardViewModel(
 
     private val today = clock.todayLocal(timeZone)
 
+    // reminders + permission collapse to one flag (keeps the main combine ≤ 5 sources).
+    private val reminderBlocked = combine(
+        settingsRepository.reminderPreferences,
+        reminderPermissionMonitor.status,
+    ) { reminders, status -> reminders.enabled && status == ReminderPermissionStatus.DENIED }
+
     val uiState: StateFlow<DashboardUiState> = combine(
         getTodaySummary(),
         observeBackupStatus(),
-        settingsRepository.reminderPreferences,
-        reminderPermissionMonitor.status,
-    ) { summary, backup, reminders, permissionStatus ->
+        getFluidBalanceToday(),
+        settingsRepository.volumeUnit,
+        reminderBlocked,
+    ) { summary, backup, fluid, unit, reminderPermissionBlocked ->
         DashboardUiState(
             date = today,
             isLoading = false,
@@ -69,8 +82,9 @@ class DashboardViewModel(
                 backup.unbackedCount > 0 || backup.lastBackupAt == 0L -> BackupHint.Pending
                 else -> BackupHint.BackedUp(daysAgo = daysSince(backup.lastBackupAt))
             },
-            reminderPermissionBlocked =
-                reminders.enabled && permissionStatus == ReminderPermissionStatus.DENIED,
+            fluidBalance = fluid,
+            volumeUnit = unit,
+            reminderPermissionBlocked = reminderPermissionBlocked,
         )
     }.stateIn(
         scope = viewModelScope,

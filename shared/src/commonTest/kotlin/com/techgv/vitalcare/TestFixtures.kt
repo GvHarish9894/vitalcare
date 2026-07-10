@@ -1,6 +1,10 @@
 package com.techgv.vitalcare
 
+import com.techgv.vitalcare.domain.model.FluidEntry
+import com.techgv.vitalcare.domain.model.FluidType
 import com.techgv.vitalcare.domain.model.VitalRecord
+import com.techgv.vitalcare.domain.model.VolumeUnit
+import com.techgv.vitalcare.domain.validation.FluidInput
 import com.techgv.vitalcare.domain.validation.VitalsInput
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -63,5 +67,41 @@ object Fixtures {
         systolic = systolic,
         diastolic = diastolic,
         remarks = remarks,
+    )
+
+    fun fluid(
+        id: String = "fluid-1",
+        date: LocalDate = today,
+        time: LocalTime = LocalTime(9, 0),
+        type: FluidType = FluidType.INTAKE,
+        amountMl: Int = 250,
+        note: String? = null,
+        createdAt: Long = 1_000L,
+        updatedAt: Long = 1_000L,
+    ): FluidEntry = FluidEntry(
+        id = id,
+        date = date,
+        time = time,
+        type = type,
+        amountMl = amountMl,
+        note = note,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
+
+    fun fluidInput(
+        date: LocalDate = today,
+        time: LocalTime = LocalTime(9, 0),
+        type: FluidType = FluidType.INTAKE,
+        amount: String = "250",
+        unit: VolumeUnit = VolumeUnit.ML,
+        note: String = "",
+    ): FluidInput = FluidInput(
+        date = date,
+        time = time,
+        type = type,
+        amount = amount,
+        unit = unit,
+        note = note,
     )
 }

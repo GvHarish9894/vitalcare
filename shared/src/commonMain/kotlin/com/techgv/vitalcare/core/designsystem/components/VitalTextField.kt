@@ -26,6 +26,9 @@ fun VitalTextField(
     onValueChange: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
+    // Applied to the inner TextField (the outer [modifier] wraps a plain Box),
+    // for focus handling like Modifier.focusRequester(...).
+    fieldModifier: Modifier = Modifier,
     suffix: String? = null,
     supportingText: String? = null,
     errorText: String? = null,
@@ -61,7 +64,7 @@ fun VitalTextField(
                 errorIndicatorColor = Color.Transparent,
                 disabledIndicatorColor = Color.Transparent,
             ),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().then(fieldModifier),
         )
         if (onClick != null) {
             // TextField consumes taps even when read-only; a transparent overlay

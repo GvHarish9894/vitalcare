@@ -1,5 +1,7 @@
 package com.techgv.vitalcare.data.backup
 
+import com.techgv.vitalcare.domain.model.FluidEntry
+import com.techgv.vitalcare.domain.model.FluidType
 import com.techgv.vitalcare.domain.model.VitalRecord
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -17,6 +19,8 @@ data class BackupFile(
     val appVersion: String,
     val profileName: String? = null,
     val records: List<BackupRecordDto>,
+    // Fluid entries (schema v2, D-033). Defaulted so v1 backups still decode.
+    val fluids: List<FluidEntryDto> = emptyList(),
 )
 
 @Serializable
@@ -55,6 +59,40 @@ fun BackupRecordDto.toDomain(): VitalRecord = VitalRecord(
     systolic = systolic,
     diastolic = diastolic,
     remarks = remarks,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+)
+
+@Serializable
+data class FluidEntryDto(
+    val id: String,
+    val date: String,
+    val time: String,
+    val type: String,
+    val amountMl: Int,
+    val note: String? = null,
+    val createdAt: Long,
+    val updatedAt: Long,
+)
+
+fun FluidEntry.toBackupDto(): FluidEntryDto = FluidEntryDto(
+    id = id,
+    date = date.toString(),
+    time = time.toString(),
+    type = type.name,
+    amountMl = amountMl,
+    note = note,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+)
+
+fun FluidEntryDto.toDomain(): FluidEntry = FluidEntry(
+    id = id,
+    date = LocalDate.parse(date),
+    time = LocalTime.parse(time),
+    type = FluidType.valueOf(type),
+    amountMl = amountMl,
+    note = note,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

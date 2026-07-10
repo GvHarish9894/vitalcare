@@ -1,11 +1,18 @@
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.googleServices)
+    // Crashlytics Gradle plugin only — uploads the R8 mapping so release crash
+    // traces de-obfuscate (CI). The runtime Crashlytics SDK is intentionally NOT
+    // added here: it would collect crashes ungated by the D-029 opt-out; runtime
+    // Crashlytics belongs to the telemetry phase behind the Telemetry seam (D-028).
+    alias(libs.plugins.firebaseCrashlytics)
 }
 
 kotlin {
@@ -32,6 +39,19 @@ val localProperties = Properties().apply {
 }
 val driveEnabled = localProperties.getProperty("vitalcare.drive.enabled", "false")
 
+// Version comes from version.properties, overridable per-build with
+// -PVERSION_NAME / -PVERSION_CODE (used by the release CI workflow).
+val versionProps = Properties().apply {
+    val file = rootProject.file("version.properties")
+    if (file.exists()) file.inputStream().use { stream -> load(stream) }
+}
+
+// Release signing (CI): the keystore is decoded to signing/keystore.jks and the
+// passwords come from SIGNING_* env vars. Absent for open-source clones — the
+// release build then stays unsigned but still builds (D-027/NFR-9).
+val releaseKeystore = rootProject.file("signing/keystore.jks")
+val hasReleaseSigning = releaseKeystore.exists()
+
 android {
     namespace = "com.techgv.vitalcare"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -44,13 +64,27 @@ android {
         applicationId = "com.techgv.vitalcare"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = (project.findProperty("VERSION_CODE") as? String)?.toIntOrNull()
+            ?: versionProps.getProperty("VERSION_CODE")?.toIntOrNull()
+            ?: 1
+        versionName = (project.findProperty("VERSION_NAME") as? String)
+            ?: versionProps.getProperty("VERSION_NAME")
+            ?: "1.0"
         buildConfigField("boolean", "DRIVE_ENABLED", driveEnabled)
     }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("SIGNING_STORE_PASSWORD") ?: ""
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS") ?: ""
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD") ?: ""
+            }
         }
     }
     buildTypes {
@@ -61,10 +95,26 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Signed in CI when a keystore is present; unsigned for plain clones.
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            // Upload the R8 mapping to Crashlytics only when the CI release job
+            // asks for it (-PenableCrashlyticsMappingUpload); off for local builds
+            // so they never touch the network.
+            configure<CrashlyticsExtension> {
+                mappingFileUploadEnabled = project.hasProperty("enableCrashlyticsMappingUpload")
+            }
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+}
+
+// Consumed by the release CI workflow to read the current version (D-032 CI).
+tasks.register("printVersionName") {
+    val name = versionProps.getProperty("VERSION_NAME") ?: "1.0"
+    doLast { println(name) }
 }
