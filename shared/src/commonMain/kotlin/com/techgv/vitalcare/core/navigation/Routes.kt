@@ -37,7 +37,7 @@ data object AnalyticsRoute
 @Serializable
 data object SettingsRoute
 
-// Fluid balance (F9, D-032) — reached from a Dashboard card, not a bottom tab.
+// Fluid balance (F9, D-033) — reached from a Dashboard card, not a bottom tab.
 @Serializable
 data object FluidsRoute
 

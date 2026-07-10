@@ -6,6 +6,9 @@ import com.techgv.vitalcare.core.util.todayLocal
 import com.techgv.vitalcare.domain.model.FluidDayBalance
 import com.techgv.vitalcare.domain.model.VitalRecord
 import com.techgv.vitalcare.domain.model.VolumeUnit
+import com.techgv.vitalcare.domain.reminders.ReminderPermission
+import com.techgv.vitalcare.domain.reminders.ReminderPermissionMonitor
+import com.techgv.vitalcare.domain.reminders.ReminderPermissionStatus
 import com.techgv.vitalcare.domain.repository.SettingsRepository
 import com.techgv.vitalcare.domain.usecase.GetFluidBalanceToday
 import com.techgv.vitalcare.domain.usecase.GetTodaySummary
@@ -38,6 +41,8 @@ data class DashboardUiState(
     val backupHint: BackupHint? = null,
     val fluidBalance: FluidDayBalance? = null,
     val volumeUnit: VolumeUnit = VolumeUnit.ML,
+    /** D-032: reminders enabled but notifications blocked at the OS level. */
+    val reminderPermissionBlocked: Boolean = false,
 )
 
 class DashboardViewModel(
@@ -45,18 +50,27 @@ class DashboardViewModel(
     observeBackupStatus: ObserveBackupStatus,
     getFluidBalanceToday: GetFluidBalanceToday,
     settingsRepository: SettingsRepository,
+    reminderPermissionMonitor: ReminderPermissionMonitor,
+    private val reminderPermission: ReminderPermission,
     clock: Clock,
     private val timeZone: TimeZone,
 ) : ViewModel() {
 
     private val today = clock.todayLocal(timeZone)
 
+    // reminders + permission collapse to one flag (keeps the main combine ≤ 5 sources).
+    private val reminderBlocked = combine(
+        settingsRepository.reminderPreferences,
+        reminderPermissionMonitor.status,
+    ) { reminders, status -> reminders.enabled && status == ReminderPermissionStatus.DENIED }
+
     val uiState: StateFlow<DashboardUiState> = combine(
         getTodaySummary(),
         observeBackupStatus(),
         getFluidBalanceToday(),
         settingsRepository.volumeUnit,
-    ) { summary, backup, fluid, unit ->
+        reminderBlocked,
+    ) { summary, backup, fluid, unit, reminderPermissionBlocked ->
         DashboardUiState(
             date = today,
             isLoading = false,
@@ -70,12 +84,15 @@ class DashboardViewModel(
             },
             fluidBalance = fluid,
             volumeUnit = unit,
+            reminderPermissionBlocked = reminderPermissionBlocked,
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = DashboardUiState(date = today),
     )
+
+    fun openNotificationSettings() = reminderPermission.openSystemSettings()
 
     private fun daysSince(epochMillis: Long): Int =
         Instant.fromEpochMilliseconds(epochMillis)

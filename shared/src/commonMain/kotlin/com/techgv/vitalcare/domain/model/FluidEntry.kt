@@ -4,7 +4,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
 /**
- * A single fluid-balance event (06 §1, D-032) — a separate concept from
+ * A single fluid-balance event (06 §1, D-033) — a separate concept from
  * [VitalRecord]. Each entry is one discrete intake or output; the app sums
  * them per day into totals and a net balance. `amountMl` is always canonical
  * millilitres (the display unit is a presentation-only preference). `date` is
@@ -22,5 +22,5 @@ data class FluidEntry(
     val updatedAt: Long,
 )
 
-/** Direction of a fluid event. `OUTPUT` is urine (D-032). */
+/** Direction of a fluid event. `OUTPUT` is urine (D-033). */
 enum class FluidType { INTAKE, OUTPUT }

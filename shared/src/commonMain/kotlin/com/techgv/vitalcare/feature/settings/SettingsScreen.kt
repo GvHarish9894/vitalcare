@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.LinkOff
 import androidx.compose.material.icons.rounded.Restore
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -43,10 +45,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.techgv.vitalcare.core.designsystem.components.ConfirmDialog
 import com.techgv.vitalcare.core.designsystem.components.SectionHeader
+import com.techgv.vitalcare.core.designsystem.components.TimePickerDialog
 import com.techgv.vitalcare.core.designsystem.components.VitalTextField
 import com.techgv.vitalcare.core.util.AppLinks
+import com.techgv.vitalcare.core.util.TimeFormat
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
 import com.techgv.vitalcare.domain.model.HistoryFilter
+import com.techgv.vitalcare.domain.model.ReminderPreferences
 import com.techgv.vitalcare.domain.model.ThemePreference
 import com.techgv.vitalcare.domain.model.VolumeUnit
 import com.techgv.vitalcare.feature.fluids.formatAmount
@@ -61,6 +66,19 @@ import vitalcare.shared.generated.resources.cadence_weekly
 import vitalcare.shared.generated.resources.disconnect_message
 import vitalcare.shared.generated.resources.disconnect_title
 import vitalcare.shared.generated.resources.export_empty
+import vitalcare.shared.generated.resources.interval_hours
+import vitalcare.shared.generated.resources.reminder_permission_blocked_action
+import vitalcare.shared.generated.resources.reminder_permission_blocked_title
+import vitalcare.shared.generated.resources.settings_reminder_active_hours
+import vitalcare.shared.generated.resources.settings_reminder_from
+import vitalcare.shared.generated.resources.settings_reminder_interval
+import vitalcare.shared.generated.resources.settings_reminder_skip
+import vitalcare.shared.generated.resources.settings_reminder_skip_note
+import vitalcare.shared.generated.resources.settings_reminder_until
+import vitalcare.shared.generated.resources.settings_reminders
+import vitalcare.shared.generated.resources.settings_reminders_toggle
+import vitalcare.shared.generated.resources.settings_reminders_toggle_note
+import vitalcare.shared.generated.resources.snackbar_reminder_permission_denied
 import vitalcare.shared.generated.resources.export_failed
 import vitalcare.shared.generated.resources.export_scope_title
 import vitalcare.shared.generated.resources.filter_all
@@ -127,6 +145,7 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
     val restoreUnsupported = stringResource(Res.string.snackbar_restore_unsupported)
     val restoreDoneTemplate = stringResource(Res.string.snackbar_restore_done, "%COUNT%")
     val genericError = stringResource(Res.string.error_generic)
+    val reminderDenied = stringResource(Res.string.snackbar_reminder_permission_denied)
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
@@ -141,6 +160,7 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
                 SettingsEffect.RestoreNoBackup -> showSnackbar(restoreNoBackup)
                 SettingsEffect.RestoreUnsupported -> showSnackbar(restoreUnsupported)
                 SettingsEffect.RestoreFailed -> showSnackbar(genericError)
+                SettingsEffect.ReminderPermissionDenied -> showSnackbar(reminderDenied)
             }
         }
     }
@@ -170,6 +190,11 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
             selected = uiState.theme,
             onSelect = { viewModel.onEvent(SettingsEvent.ThemeSelected(it)) },
         )
+
+        SectionHeader(stringResource(Res.string.settings_reminders))
+        SettingsCard {
+            RemindersSection(uiState = uiState, onEvent = viewModel::onEvent)
+        }
 
         SectionHeader(stringResource(Res.string.settings_backup_export))
         SettingsCard {
@@ -262,6 +287,20 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
             onDismiss = { viewModel.onEvent(SettingsEvent.ExportChooserDismissed) },
         )
     }
+    if (uiState.showReminderFromPicker) {
+        TimePickerDialog(
+            initial = uiState.reminders.activeFrom,
+            onConfirm = { viewModel.onEvent(SettingsEvent.ReminderFromChanged(it)) },
+            onDismiss = { viewModel.onEvent(SettingsEvent.ReminderPickerDismissed) },
+        )
+    }
+    if (uiState.showReminderUntilPicker) {
+        TimePickerDialog(
+            initial = uiState.reminders.activeUntil,
+            onConfirm = { viewModel.onEvent(SettingsEvent.ReminderUntilChanged(it)) },
+            onDismiss = { viewModel.onEvent(SettingsEvent.ReminderPickerDismissed) },
+        )
+    }
     if (uiState.showDisconnectConfirm) {
         ConfirmDialog(
             title = stringResource(Res.string.disconnect_title),
@@ -272,6 +311,148 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
             onDismiss = { viewModel.onEvent(SettingsEvent.DisconnectDismissed) },
             destructive = true,
         )
+    }
+}
+
+/**
+ * Reminders section (D-032). The toggle stores intent; when notifications
+ * are blocked at the OS level a warning row appears (mirrored by the
+ * Dashboard banner) deep-linking to system settings.
+ */
+@Composable
+private fun RemindersSection(
+    uiState: SettingsUiState,
+    onEvent: (SettingsEvent) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.settings_reminders_toggle),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = stringResource(Res.string.settings_reminders_toggle_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(
+            checked = uiState.reminders.enabled,
+            onCheckedChange = { onEvent(SettingsEvent.ReminderToggled(it)) },
+        )
+    }
+
+    if (uiState.reminderPermissionBlocked) {
+        Surface(
+            onClick = { onEvent(SettingsEvent.OpenNotificationSettings) },
+            color = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            shape = MaterialTheme.shapes.small,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Warning,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = stringResource(Res.string.reminder_permission_blocked_title),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        text = stringResource(Res.string.reminder_permission_blocked_action),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
+        }
+    }
+
+    if (uiState.reminders.enabled) {
+        Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp)) {
+            Text(
+                text = stringResource(Res.string.settings_reminder_interval),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ReminderPreferences.INTERVAL_PRESETS.forEach { hours ->
+                    FilterChip(
+                        selected = hours == uiState.reminders.intervalHours,
+                        onClick = { onEvent(SettingsEvent.ReminderIntervalSelected(hours)) },
+                        shape = CircleShape,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
+                        label = {
+                            Text(
+                                text = stringResource(Res.string.interval_hours, hours),
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        },
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(Res.string.settings_reminder_active_hours),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                VitalTextField(
+                    value = TimeFormat.format(uiState.reminders.activeFrom),
+                    onValueChange = {},
+                    label = stringResource(Res.string.settings_reminder_from),
+                    onClick = { onEvent(SettingsEvent.ReminderFromClicked) },
+                    modifier = Modifier.weight(1f),
+                )
+                VitalTextField(
+                    value = TimeFormat.format(uiState.reminders.activeUntil),
+                    onValueChange = {},
+                    label = stringResource(Res.string.settings_reminder_until),
+                    onClick = { onEvent(SettingsEvent.ReminderUntilClicked) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(Res.string.settings_reminder_skip),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    text = stringResource(Res.string.settings_reminder_skip_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Switch(
+                checked = uiState.reminders.skipIfRecorded,
+                onCheckedChange = { onEvent(SettingsEvent.ReminderSkipToggled(it)) },
+            )
+        }
     }
 }
 

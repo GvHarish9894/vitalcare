@@ -3,7 +3,7 @@ package com.techgv.vitalcare.domain.usecase
 import com.techgv.vitalcare.domain.model.FluidEntry
 
 /**
- * Restore-merge policy for fluid entries (D-024/D-032), mirroring
+ * Restore-merge policy for fluid entries (D-024/D-033), mirroring
  * [MergeBackupRecords]: union by id; when both sides share an id, the newer
  * `updatedAt` wins (LWW). Local-only entries are untouched; applying the same
  * backup twice writes nothing the second time.

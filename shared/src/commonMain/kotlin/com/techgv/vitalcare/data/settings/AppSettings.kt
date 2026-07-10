@@ -2,11 +2,13 @@ package com.techgv.vitalcare.data.settings
 
 import com.russhwolf.settings.Settings
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
+import com.techgv.vitalcare.domain.model.ReminderPreferences
 import com.techgv.vitalcare.domain.model.ThemePreference
 import com.techgv.vitalcare.domain.model.VolumeUnit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.datetime.LocalTime
 
 /**
  * multiplatform-settings wrapper. Each key is exposed as an in-memory
@@ -34,13 +36,15 @@ class AppSettings(private val settings: Settings) {
     private val _autoBackupCadence = MutableStateFlow(readCadence())
     val autoBackupCadence: StateFlow<AutoBackupCadence> = _autoBackupCadence.asStateFlow()
 
-    // Fluid preferences (D-032) — display unit and daily intake goal (canonical mL).
+    // Fluid preferences (D-033) — display unit and daily intake goal (canonical mL).
     private val _volumeUnit = MutableStateFlow(readVolumeUnit())
     val volumeUnit: StateFlow<VolumeUnit> = _volumeUnit.asStateFlow()
 
     private val _dailyFluidGoalMl =
         MutableStateFlow(settings.getInt(KEY_FLUID_GOAL_ML, DEFAULT_FLUID_GOAL_ML))
     val dailyFluidGoalMl: StateFlow<Int> = _dailyFluidGoalMl.asStateFlow()
+    private val _reminderPreferences = MutableStateFlow(readReminderPreferences())
+    val reminderPreferences: StateFlow<ReminderPreferences> = _reminderPreferences.asStateFlow()
 
     fun setTheme(value: ThemePreference) {
         settings.putString(KEY_THEME, value.name)
@@ -82,6 +86,15 @@ class AppSettings(private val settings: Settings) {
         _dailyFluidGoalMl.value = value
     }
 
+    fun setReminderPreferences(value: ReminderPreferences) {
+        settings.putBoolean(KEY_REMINDERS_ENABLED, value.enabled)
+        settings.putInt(KEY_REMINDER_INTERVAL, value.intervalHours)
+        settings.putString(KEY_REMINDER_FROM, value.activeFrom.toString())
+        settings.putString(KEY_REMINDER_UNTIL, value.activeUntil.toString())
+        settings.putBoolean(KEY_REMINDER_SKIP_RECORDED, value.skipIfRecorded)
+        _reminderPreferences.value = value
+    }
+
     private fun readTheme(): ThemePreference {
         val raw = settings.getString(KEY_THEME, ThemePreference.SYSTEM.name)
         return ThemePreference.entries.firstOrNull { it.name == raw } ?: ThemePreference.SYSTEM
@@ -97,6 +110,25 @@ class AppSettings(private val settings: Settings) {
         return VolumeUnit.entries.firstOrNull { it.name == raw } ?: VolumeUnit.ML
     }
 
+    private fun readReminderPreferences(): ReminderPreferences {
+        val defaults = ReminderPreferences()
+        return ReminderPreferences(
+            enabled = settings.getBoolean(KEY_REMINDERS_ENABLED, defaults.enabled),
+            intervalHours = settings.getInt(KEY_REMINDER_INTERVAL, defaults.intervalHours),
+            activeFrom = readTimeOrDefault(KEY_REMINDER_FROM, defaults.activeFrom),
+            activeUntil = readTimeOrDefault(KEY_REMINDER_UNTIL, defaults.activeUntil),
+            skipIfRecorded = settings.getBoolean(
+                KEY_REMINDER_SKIP_RECORDED,
+                defaults.skipIfRecorded,
+            ),
+        )
+    }
+
+    private fun readTimeOrDefault(key: String, default: LocalTime): LocalTime {
+        val raw = settings.getString(key, "")
+        return if (raw.isBlank()) default else runCatching { LocalTime.parse(raw) }.getOrDefault(default)
+    }
+
     private companion object {
         const val KEY_THEME = "theme"
         const val KEY_PROFILE_NAME = "profile_name"
@@ -107,5 +139,10 @@ class AppSettings(private val settings: Settings) {
         const val KEY_VOLUME_UNIT = "volume_unit"
         const val KEY_FLUID_GOAL_ML = "daily_fluid_goal_ml"
         const val DEFAULT_FLUID_GOAL_ML = 2000
+        const val KEY_REMINDERS_ENABLED = "reminders_enabled"
+        const val KEY_REMINDER_INTERVAL = "reminder_interval_hours"
+        const val KEY_REMINDER_FROM = "reminder_active_from"
+        const val KEY_REMINDER_UNTIL = "reminder_active_until"
+        const val KEY_REMINDER_SKIP_RECORDED = "reminder_skip_recorded"
     }
 }

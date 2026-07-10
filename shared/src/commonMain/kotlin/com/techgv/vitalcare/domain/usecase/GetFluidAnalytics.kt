@@ -17,7 +17,7 @@ import kotlinx.datetime.minus
 import kotlin.time.Clock
 
 /**
- * Fluid aggregation for the Fluids trend (FR-FL5, 06 §7, D-032). DAILY = today's
+ * Fluid aggregation for the Fluids trend (FR-FL5, 06 §7, D-033). DAILY = today's
  * entries by time-of-day; WEEKLY/MONTHLY = per-day **totals** (sum) over the
  * last 7/30 days. This is the sum aggregation that vitals' [GetAnalytics]
  * deliberately does not do.

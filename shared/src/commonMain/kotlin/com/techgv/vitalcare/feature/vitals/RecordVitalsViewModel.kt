@@ -6,6 +6,7 @@ import com.techgv.vitalcare.core.util.AppResult
 import com.techgv.vitalcare.core.util.nowLocal
 import com.techgv.vitalcare.core.util.todayLocal
 import com.techgv.vitalcare.domain.model.VitalRecord
+import com.techgv.vitalcare.domain.reminders.ReminderScheduler
 import com.techgv.vitalcare.domain.usecase.GetVitalRecord
 import com.techgv.vitalcare.domain.usecase.SaveVitalRecord
 import com.techgv.vitalcare.domain.validation.VitalsInput
@@ -24,6 +25,7 @@ class RecordVitalsViewModel(
     private val recordId: String?,
     private val saveVitalRecord: SaveVitalRecord,
     private val getVitalRecord: GetVitalRecord,
+    private val reminderScheduler: ReminderScheduler,
     clock: Clock,
     timeZone: TimeZone,
 ) : ViewModel() {
@@ -121,6 +123,7 @@ class RecordVitalsViewModel(
             )
             when (val result = saveVitalRecord(input, existing)) {
                 is SaveVitalRecord.Result.Saved -> {
+                    reminderScheduler.onVitalsRecorded() // suppress the imminent nag (D-032)
                     _uiState.update { it.copy(isSaving = false, fieldErrors = emptyMap()) }
                     _effects.send(RecordVitalsEffect.Saved)
                 }

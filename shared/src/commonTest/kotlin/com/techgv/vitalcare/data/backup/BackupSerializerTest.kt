@@ -99,7 +99,7 @@ class BackupSerializerTest {
 
     @Test
     fun readsOlderV1BackupWithNoFluidsArray() {
-        // A v1 document predates fluids (D-032) — it must still decode, with fluids empty.
+        // A v1 document predates fluids (D-033) — it must still decode, with fluids empty.
         val v1 = """
             {"schemaVersion":1,"exportedAt":1,"appVersion":"0.9",
              "records":[{"id":"a","date":"2026-07-04","time":"08:30",

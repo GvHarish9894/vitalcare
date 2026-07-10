@@ -1,7 +1,7 @@
 package com.techgv.vitalcare.domain.model
 
 /**
- * Fluid analytics (FR-FL5, D-032). Unlike vitals analytics (which averages),
+ * Fluid analytics (FR-FL5, D-033). Unlike vitals analytics (which averages),
  * fluids aggregate by **sum**: for DAILY each point is one entry by
  * time-of-day; for WEEKLY/MONTHLY each point is that day's total. `net` is the
  * per-point intake − output. Amounts are canonical mL. Reuses [SeriesPoint].

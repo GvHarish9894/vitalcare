@@ -5,7 +5,7 @@ import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 
 /**
- * v1 → v2 (D-032): add the `fluid_entries` table (+ its `date` index).
+ * v1 → v2 (D-033): add the `fluid_entries` table (+ its `date` index).
  * `vital_records` is untouched. The column definitions and the index name
  * (`index_fluid_entries_date`) must match what Room generates for
  * [FluidEntryEntity] so the schema-validation check passes (06 §2).

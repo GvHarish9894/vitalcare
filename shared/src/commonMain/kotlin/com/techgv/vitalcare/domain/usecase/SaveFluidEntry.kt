@@ -17,7 +17,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
- * Save path for a fluid entry (D-032), mirroring [SaveVitalRecord]: validate →
+ * Save path for a fluid entry (D-033), mirroring [SaveVitalRecord]: validate →
  * build/merge → Room. Create stamps a new UUID + today's date (BR-4); edit
  * preserves id/date/createdAt and bumps `updatedAt`.
  */

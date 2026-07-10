@@ -26,7 +26,7 @@ App launch ──► Dashboard  (no splash gate, no auth)
                 Dashboard ─► History ─► RecordDetails ─► RecordVitals (edit mode)
                 Dashboard ─► Analytics
                 Dashboard ─► Settings ─► (CSV export · Drive connect/backup/restore)
-                Dashboard ─► Fluids (hub) ─► LogFluid (add / edit)   [F9, D-032]
+                Dashboard ─► Fluids (hub) ─► LogFluid (add / edit)   [F9, D-033]
 ```
 
 - Single shared `NavHost` in `App()`; type-safe `@Serializable` routes (D-008). One graph — no
@@ -132,13 +132,13 @@ Top-level tab. Sectioned list:
    - (Proposed) **Encrypt backups** toggle + password (FR-B7, D-026).
 4. **Privacy** — "Share anonymous usage & crash data" toggle (FR-SE5, D-029); a one-line note that
    it never includes vital values, remarks, or names. On by default.
-5. **Fluids (F9, FR-SE6, D-032)** — **Volume unit** selector (Millilitres / Fluid ounces) and
+5. **Fluids (F9, FR-SE6, D-033)** — **Volume unit** selector (Millilitres / Fluid ounces) and
    **Daily intake goal** (entered in the chosen unit; default 2000 mL). Both persist in settings.
 6. **About** — version; link to the open-source repository (FR-SE4).
 
 *(No Logout row — there is no session.)*
 
-### 3.11 Fluids hub (F9, FR-FL2..FL5, D-032)
+### 3.11 Fluids hub (F9, FR-FL2..FL5, D-033)
 Pushed from the Dashboard fluid card (not a bottom tab). App bar: "Fluids" + overflow
 (**Export fluids CSV**, FR-FL6).
 
@@ -157,7 +157,7 @@ Pushed from the Dashboard fluid card (not a bottom tab). App bar: "Fluids" + ove
 - **Trend (FR-FL5)** — range selector Daily · Weekly · Monthly showing per-day **totals** (sum, not
   average) for intake & output and a net-balance readout (reuse `PillBarChart`). Empty state when no data.
 
-### 3.12 Log Fluid (F9, FR-FL1/FL3, D-032)
+### 3.12 Log Fluid (F9, FR-FL1/FL3, D-033)
 Pushed full-screen. App bar: "Log Fluid" / "Edit Fluid", close (✕) with discard-confirm if dirty.
 
 | Field | Control | Notes |
@@ -272,7 +272,7 @@ Rounded/duotone Material Symbols inside circular tonal chips; consistent stroke.
 `favorite` (HR), `water_drop` (SpO₂), `monitor_heart` (BP), `history`, `insights`, `settings`,
 `cloud_upload`/`cloud_done` (Drive backup), `download` (CSV export), `restore`, `add` (record FAB),
 `warning`, `local_drink`/`water_drop` (fluid intake), `wc`/`humidity_low` (urine output),
-`local_drink` (Fluids feature, D-032). Small emoji-style chips (🏅 streak) may accent celebratory
+`local_drink` (Fluids feature, D-033). Small emoji-style chips (🏅 streak) may accent celebratory
 moments — sparingly.
 
 ## 5. Accessibility checklist (NFR-6)

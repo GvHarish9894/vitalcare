@@ -1,6 +1,7 @@
 package com.techgv.vitalcare
 
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
+import com.techgv.vitalcare.domain.model.ReminderPreferences
 import com.techgv.vitalcare.domain.model.ThemePreference
 import com.techgv.vitalcare.domain.model.VolumeUnit
 import com.techgv.vitalcare.domain.repository.SettingsRepository
@@ -16,6 +17,7 @@ class FakeSettingsRepository : SettingsRepository {
     override val autoBackupCadence = MutableStateFlow(AutoBackupCadence.OFF)
     override val volumeUnit = MutableStateFlow(VolumeUnit.ML)
     override val dailyFluidGoalMl = MutableStateFlow(2000)
+    override val reminderPreferences = MutableStateFlow(ReminderPreferences())
 
     override fun setTheme(value: ThemePreference) { theme.value = value }
     override fun setProfileName(value: String) { profileName.value = value }
@@ -25,4 +27,7 @@ class FakeSettingsRepository : SettingsRepository {
     override fun setAutoBackupCadence(value: AutoBackupCadence) { autoBackupCadence.value = value }
     override fun setVolumeUnit(value: VolumeUnit) { volumeUnit.value = value }
     override fun setDailyFluidGoalMl(value: Int) { dailyFluidGoalMl.value = value }
+    override fun setReminderPreferences(value: ReminderPreferences) {
+        reminderPreferences.value = value
+    }
 }

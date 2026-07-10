@@ -78,7 +78,7 @@ optional Drive OAuth setup), `CONTRIBUTING`; verify no committed secrets (D-027)
 **Acceptance:** fresh clone builds and runs with no config; release builds pass full regression;
 no secrets in git history; store review requirements met.
 
-## Phase 10 — Fluid Balance (F9, D-032) *(post-release feature; builds on Phases 1–8)*
+## Phase 10 — Fluid Balance (F9, D-033) *(post-release feature; builds on Phases 1–8)*
 **Scope:** a **separate** fluid-tracking feature (water intake + urine output), independent of
 vitals.
 - **Data:** `FluidEntry`/`FluidType` domain model; `fluid_entries` Room table; `FluidEntryDao`;
@@ -95,7 +95,7 @@ vitals.
 
 **Acceptance:** FR-FL1..FL7, FR-SE6; amount/unit validation + mL↔oz conversion unit-tested; daily
 totals & net balance correct (sums, not averages); `MIGRATION_1_2` upgrades a v1 DB with vitals
-intact; backup round-trips fluids losslessly and a v1 backup still restores (NFR-5, D-024/D-032);
+intact; backup round-trips fluids losslessly and a v1 backup still restores (NFR-5, D-024/D-033);
 builds and tests green on Android + iOS.
 
 ---

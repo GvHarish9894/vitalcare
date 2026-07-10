@@ -43,7 +43,7 @@ sealed interface FluidValidationResult {
 }
 
 /**
- * Validation for a fluid entry (01 §2a, D-032): amount required and within
+ * Validation for a fluid entry (01 §2a, D-033): amount required and within
  * 1–5000 mL (after converting from the display unit), note ≤ 500 chars, time
  * never in the future (BR-6). `type` always arrives set from the UI toggle.
  */

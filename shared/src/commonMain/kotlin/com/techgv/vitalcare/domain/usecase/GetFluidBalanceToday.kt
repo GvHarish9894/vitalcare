@@ -13,7 +13,7 @@ import kotlin.time.Clock
 /**
  * Reactive fluid balance for today (FR-FL2): intake/output totals, net balance,
  * and goal progress. Sums today's entries — the fluid aggregation is by SUM,
- * not average (D-032).
+ * not average (D-033).
  */
 class GetFluidBalanceToday(
     private val repository: FluidRepository,

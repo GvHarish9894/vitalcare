@@ -19,7 +19,7 @@ data class BackupFile(
     val appVersion: String,
     val profileName: String? = null,
     val records: List<BackupRecordDto>,
-    // Fluid entries (schema v2, D-032). Defaulted so v1 backups still decode.
+    // Fluid entries (schema v2, D-033). Defaulted so v1 backups still decode.
     val fluids: List<FluidEntryDto> = emptyList(),
 )
 

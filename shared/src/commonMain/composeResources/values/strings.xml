@@ -158,6 +158,22 @@
     <string name="settings_version">Version</string>
     <string name="settings_source">Open-source project</string>
 
+    <!-- Reminders (D-032) -->
+    <string name="notification_reminder_text">Time to record your vitals</string>
+    <string name="settings_reminders">Reminders</string>
+    <string name="settings_reminders_toggle">Remind me to record</string>
+    <string name="settings_reminders_toggle_note">A gentle nudge so no reading is missed</string>
+    <string name="settings_reminder_interval">Every</string>
+    <string name="interval_hours">%1$d h</string>
+    <string name="settings_reminder_active_hours">Active hours</string>
+    <string name="settings_reminder_from">From</string>
+    <string name="settings_reminder_until">Until</string>
+    <string name="settings_reminder_skip">Skip when already recorded</string>
+    <string name="settings_reminder_skip_note">No reminder if you recorded recently</string>
+    <string name="reminder_permission_blocked_title">Reminders are on, but notifications are off</string>
+    <string name="reminder_permission_blocked_action">Turn on notifications →</string>
+    <string name="snackbar_reminder_permission_denied">Allow notifications to get reminders</string>
+
     <!-- Errors -->
     <string name="error_generic">Something went wrong</string>
 
@@ -167,7 +183,7 @@
     <string name="cd_pick_time">Pick time</string>
     <string name="cd_log_fluid">Log fluid</string>
 
-    <!-- Fluids (F9, 03 §3.11/3.12, D-032) -->
+    <!-- Fluids (F9, 03 §3.11/3.12, D-033) -->
     <string name="fluid_intake">Intake</string>
     <string name="fluid_output">Urine</string>
     <string name="fluid_net">Balance</string>

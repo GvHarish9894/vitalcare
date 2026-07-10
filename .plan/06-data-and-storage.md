@@ -30,7 +30,7 @@ data class Profile(
     val name: String,                // may be blank / unset
 )
 
-// Fluid balance (F9, D-032) — a SEPARATE concept from VitalRecord. One row per discrete
+// Fluid balance (F9, D-033) — a SEPARATE concept from VitalRecord. One row per discrete
 // intake/output event; the app sums them per day.
 data class FluidEntry(
     val id: String,                  // UUID v4
@@ -90,7 +90,7 @@ There is no `patients` table (D-019). The optional profile name is a single valu
 }
 ```
 
-### `fluid_entries` (D-032)
+### `fluid_entries` (D-033)
 | Column | Type | Notes |
 |---|---|---|
 | `id` | TEXT PK | UUID |
@@ -107,7 +107,7 @@ observeByDateRange, observeAll, snapshot getAll/getByDateRange, hardDelete). Ind
 **Migrations:** never destructive in production. Every schema change ships a `Migration`;
 `fallbackToDestructiveMigration` is allowed only in debug builds. **Adding `fluid_entries` bumps
 `VitalCareDatabase` to `version = 2` with `MIGRATION_1_2`** (`CREATE TABLE fluid_entries …` +
-`CREATE INDEX index_fluid_entries_date …`); `vital_records` is unchanged (D-032).
+`CREATE INDEX index_fluid_entries_date …`); `vital_records` is unchanged (D-033).
 
 ## 3. CSV export format (D-023, RFC 4180)
 
@@ -128,7 +128,7 @@ date,time,spo2,heart_rate,systolic,diastolic,remarks,created_at,updated_at
 - CSV is **export-only** (human/spreadsheet consumption). Round-trip restore uses the JSON
   backup, not CSV.
 
-### Fluids CSV (D-032)
+### Fluids CSV (D-033)
 
 Fluid entries export as a **separate** CSV (a fluid event has a different shape from a vitals
 reading). Amounts are the canonical mL value.
@@ -146,7 +146,7 @@ backups; restore rejects a `schemaVersion` newer than it understands with a clea
 
 ```jsonc
 {
-  "schemaVersion": 2,               // bumped 1→2 to add fluids (D-032)
+  "schemaVersion": 2,               // bumped 1→2 to add fluids (D-033)
   "exportedAt": 1720080000000,      // epoch millis UTC
   "appVersion": "1.0.0",
   "profileName": "Amma",            // optional (D-019), omitted if unset
@@ -161,7 +161,7 @@ backups; restore rejects a `schemaVersion` newer than it understands with a clea
       "updatedAt": 1719990600000
     }
   ],
-  "fluids": [                       // D-032; defaulted to [] so v1 backups still decode
+  "fluids": [                       // D-033; defaulted to [] so v1 backups still decode
     {
       "id": "a91c…",
       "date": "2026-07-09", "time": "09:00",
@@ -219,7 +219,7 @@ Computed from Room (the only store):
 - **Weekly/Monthly:** `observeByDateRange` for last 7/30 days, grouped by `date` in the use case;
   per-day averages + range min/max/avg computed in `GetAnalytics` use case (pure, testable).
 
-**Fluid analytics (F9, D-032)** use a **different aggregation** — daily **sums**, not averages.
+**Fluid analytics (F9, D-033)** use a **different aggregation** — daily **sums**, not averages.
 `GetFluidBalanceToday` combines today's entries into intake/output/net totals + goal progress;
 `GetFluidAnalytics` produces per-day **total** intake & output series and a net-balance series
 over the range (weekly/monthly), with range totals. `GetAnalytics` (vitals) is left untouched.

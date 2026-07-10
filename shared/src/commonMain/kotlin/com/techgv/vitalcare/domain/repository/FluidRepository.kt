@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.LocalDate
 
 /**
- * Room-backed fluid-entry store (D-032) — parallel to [VitalsRepository].
+ * Room-backed fluid-entry store (D-033) — parallel to [VitalsRepository].
  * Reads are reactive Flows; commands are suspend functions returning
  * [AppResult] (04 §8).
  */

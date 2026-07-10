@@ -5,7 +5,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * `fluid_entries` table (06 §2, D-032). Mirrors [VitalRecordEntity]'s
+ * `fluid_entries` table (06 §2, D-033). Mirrors [VitalRecordEntity]'s
  * conventions: `date`/`time` are ISO-8601 strings (`yyyy-MM-dd` / `HH:mm`) so
  * text ordering matches chronological ordering; `type` is the [FluidType] enum
  * name; `amountMl` is canonical millilitres; timestamps are epoch millis UTC.

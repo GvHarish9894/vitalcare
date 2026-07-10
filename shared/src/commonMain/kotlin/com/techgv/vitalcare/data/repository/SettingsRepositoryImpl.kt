@@ -3,6 +3,7 @@ package com.techgv.vitalcare.data.repository
 import com.techgv.vitalcare.core.telemetry.Telemetry
 import com.techgv.vitalcare.data.settings.AppSettings
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
+import com.techgv.vitalcare.domain.model.ReminderPreferences
 import com.techgv.vitalcare.domain.model.ThemePreference
 import com.techgv.vitalcare.domain.model.VolumeUnit
 import com.techgv.vitalcare.domain.repository.SettingsRepository
@@ -26,6 +27,8 @@ class SettingsRepositoryImpl(
     override val autoBackupCadence: StateFlow<AutoBackupCadence> = appSettings.autoBackupCadence
     override val volumeUnit: StateFlow<VolumeUnit> = appSettings.volumeUnit
     override val dailyFluidGoalMl: StateFlow<Int> = appSettings.dailyFluidGoalMl
+    override val reminderPreferences: StateFlow<ReminderPreferences> =
+        appSettings.reminderPreferences
 
     override fun setTheme(value: ThemePreference) = appSettings.setTheme(value)
 
@@ -46,4 +49,6 @@ class SettingsRepositoryImpl(
     override fun setVolumeUnit(value: VolumeUnit) = appSettings.setVolumeUnit(value)
 
     override fun setDailyFluidGoalMl(value: Int) = appSettings.setDailyFluidGoalMl(value)
+    override fun setReminderPreferences(value: ReminderPreferences) =
+        appSettings.setReminderPreferences(value)
 }

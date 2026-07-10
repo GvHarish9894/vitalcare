@@ -2,6 +2,8 @@ package com.techgv.vitalcare.feature.vitals
 
 import com.techgv.vitalcare.FakeVitalsRepository
 import com.techgv.vitalcare.Fixtures
+import com.techgv.vitalcare.domain.model.ReminderPreferences
+import com.techgv.vitalcare.domain.reminders.ReminderScheduler
 import com.techgv.vitalcare.domain.usecase.GetVitalRecord
 import com.techgv.vitalcare.domain.usecase.SaveVitalRecord
 import com.techgv.vitalcare.domain.validation.VitalField
@@ -38,12 +40,22 @@ class RecordVitalsViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private class NoOpReminderScheduler : ReminderScheduler {
+        var recordedCount = 0
+        override fun apply(preferences: ReminderPreferences) = Unit
+        override fun cancelAll() = Unit
+        override fun onVitalsRecorded() { recordedCount++ }
+    }
+
+    private val reminderScheduler = NoOpReminderScheduler()
+
     private fun createViewModel(recordId: String? = null): RecordVitalsViewModel {
         val validator = VitalsValidator(Fixtures.clock, Fixtures.timeZone)
         return RecordVitalsViewModel(
             recordId = recordId,
             saveVitalRecord = SaveVitalRecord(repository, validator, Fixtures.clock, Fixtures.timeZone),
             getVitalRecord = GetVitalRecord(repository),
+            reminderScheduler = reminderScheduler,
             clock = Fixtures.clock,
             timeZone = Fixtures.timeZone,
         )
@@ -94,6 +106,7 @@ class RecordVitalsViewModelTest {
 
         assertIs<RecordVitalsEffect.Saved>(viewModel.effects.first())
         assertEquals(1, repository.current().size)
+        assertEquals(1, reminderScheduler.recordedCount) // D-032 skip-next hook fired
     }
 
     @Test

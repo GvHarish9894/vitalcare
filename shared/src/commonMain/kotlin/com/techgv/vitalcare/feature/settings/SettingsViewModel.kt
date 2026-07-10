@@ -10,8 +10,12 @@ import com.techgv.vitalcare.core.util.TimeFormat
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
 import com.techgv.vitalcare.domain.model.HistoryFilter
+import com.techgv.vitalcare.domain.model.ReminderPreferences
 import com.techgv.vitalcare.domain.model.ThemePreference
 import com.techgv.vitalcare.domain.model.VolumeUnit
+import com.techgv.vitalcare.domain.reminders.ReminderPermission
+import com.techgv.vitalcare.domain.reminders.ReminderPermissionMonitor
+import com.techgv.vitalcare.domain.reminders.ReminderPermissionStatus
 import com.techgv.vitalcare.domain.repository.SettingsRepository
 import com.techgv.vitalcare.domain.usecase.BackupNow
 import com.techgv.vitalcare.domain.usecase.ConnectDrive
@@ -20,6 +24,8 @@ import com.techgv.vitalcare.domain.usecase.ExportCsv
 import com.techgv.vitalcare.domain.usecase.ObserveBackupStatus
 import com.techgv.vitalcare.domain.usecase.RestoreFromDrive
 import com.techgv.vitalcare.domain.usecase.SetAutoBackup
+import com.techgv.vitalcare.domain.usecase.SetReminderPreferences
+import kotlinx.datetime.LocalTime
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -49,9 +55,14 @@ data class SettingsUiState(
     val isBackingUp: Boolean = false,
     val isRestoring: Boolean = false,
     val showDisconnectConfirm: Boolean = false,
-    // Fluids (FR-SE6, D-032).
+    // Fluids (FR-SE6, D-033).
     val volumeUnit: VolumeUnit = VolumeUnit.ML,
     val dailyFluidGoalMl: Int = 2000,
+    // Reminders (D-032): toggle stores intent; blocked = on but no permission.
+    val reminders: ReminderPreferences = ReminderPreferences(),
+    val reminderPermissionBlocked: Boolean = false,
+    val showReminderFromPicker: Boolean = false,
+    val showReminderUntilPicker: Boolean = false,
 )
 
 sealed interface SettingsEvent {
@@ -70,6 +81,15 @@ sealed interface SettingsEvent {
     data object DisconnectDismissed : SettingsEvent
     data class VolumeUnitSelected(val unit: VolumeUnit) : SettingsEvent
     data class DailyGoalSelected(val goalMl: Int) : SettingsEvent
+    data class ReminderToggled(val enabled: Boolean) : SettingsEvent
+    data class ReminderIntervalSelected(val hours: Int) : SettingsEvent
+    data object ReminderFromClicked : SettingsEvent
+    data object ReminderUntilClicked : SettingsEvent
+    data class ReminderFromChanged(val time: LocalTime) : SettingsEvent
+    data class ReminderUntilChanged(val time: LocalTime) : SettingsEvent
+    data object ReminderPickerDismissed : SettingsEvent
+    data class ReminderSkipToggled(val enabled: Boolean) : SettingsEvent
+    data object OpenNotificationSettings : SettingsEvent
 }
 
 sealed interface SettingsEffect {
@@ -83,6 +103,7 @@ sealed interface SettingsEffect {
     data object RestoreNoBackup : SettingsEffect
     data object RestoreUnsupported : SettingsEffect
     data object RestoreFailed : SettingsEffect
+    data object ReminderPermissionDenied : SettingsEffect
 }
 
 class SettingsViewModel(
@@ -96,6 +117,9 @@ class SettingsViewModel(
     private val backupNow: BackupNow,
     private val restoreFromDrive: RestoreFromDrive,
     private val setAutoBackup: SetAutoBackup,
+    private val setReminderPreferences: SetReminderPreferences,
+    private val reminderPermissionMonitor: ReminderPermissionMonitor,
+    private val reminderPermission: ReminderPermission,
     private val timeZone: TimeZone,
 ) : ViewModel() {
 
@@ -111,8 +135,14 @@ class SettingsViewModel(
         val showDisconnectConfirm: Boolean = false,
     )
 
+    private data class ReminderPickers(
+        val showFrom: Boolean = false,
+        val showUntil: Boolean = false,
+    )
+
     private val exportUi = MutableStateFlow(ExportUi())
     private val driveUi = MutableStateFlow(DriveUi())
+    private val reminderPickers = MutableStateFlow(ReminderPickers())
 
     private data class Prefs(
         val profileName: String,
@@ -136,11 +166,20 @@ class SettingsViewModel(
         driveUi,
     ) { status, cadence, ui -> Triple(status, cadence, ui) }
 
+    private val reminderState = combine(
+        settingsRepository.reminderPreferences,
+        reminderPermissionMonitor.status,
+        reminderPickers,
+    ) { preferences, permission, pickers -> Triple(preferences, permission, pickers) }
+
+    // `prefs` already carries profile/theme/telemetry + fluid unit/goal, so it
+    // replaces master's separate `basics` group here.
     val uiState: StateFlow<SettingsUiState> = combine(
         prefs,
         exportUi,
         backupState,
-    ) { pref, export, (status, cadence, drive) ->
+        reminderState,
+    ) { pref, export, (status, cadence, drive), (reminders, permission, pickers) ->
         SettingsUiState(
             profileName = pref.profileName,
             theme = pref.theme,
@@ -158,6 +197,11 @@ class SettingsViewModel(
             showDisconnectConfirm = drive.showDisconnectConfirm,
             volumeUnit = pref.volumeUnit,
             dailyFluidGoalMl = pref.dailyFluidGoalMl,
+            reminders = reminders,
+            reminderPermissionBlocked =
+                reminders.enabled && permission == ReminderPermissionStatus.DENIED,
+            showReminderFromPicker = pickers.showFrom,
+            showReminderUntilPicker = pickers.showUntil,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -196,6 +240,37 @@ class SettingsViewModel(
                 settingsRepository.setVolumeUnit(event.unit)
             is SettingsEvent.DailyGoalSelected ->
                 settingsRepository.setDailyFluidGoalMl(event.goalMl)
+            is SettingsEvent.ReminderToggled ->
+                updateReminders { it.copy(enabled = event.enabled) }
+            is SettingsEvent.ReminderIntervalSelected ->
+                updateReminders { it.copy(intervalHours = event.hours) }
+            SettingsEvent.ReminderFromClicked ->
+                reminderPickers.update { it.copy(showFrom = true) }
+            SettingsEvent.ReminderUntilClicked ->
+                reminderPickers.update { it.copy(showUntil = true) }
+            is SettingsEvent.ReminderFromChanged -> {
+                reminderPickers.update { it.copy(showFrom = false) }
+                updateReminders { it.copy(activeFrom = event.time) }
+            }
+            is SettingsEvent.ReminderUntilChanged -> {
+                reminderPickers.update { it.copy(showUntil = false) }
+                updateReminders { it.copy(activeUntil = event.time) }
+            }
+            SettingsEvent.ReminderPickerDismissed ->
+                reminderPickers.update { ReminderPickers() }
+            is SettingsEvent.ReminderSkipToggled ->
+                updateReminders { it.copy(skipIfRecorded = event.enabled) }
+            SettingsEvent.OpenNotificationSettings -> reminderPermission.openSystemSettings()
+        }
+    }
+
+    private fun updateReminders(transform: (ReminderPreferences) -> ReminderPreferences) {
+        val updated = transform(settingsRepository.reminderPreferences.value)
+        viewModelScope.launch {
+            val result = setReminderPreferences(updated)
+            if (result is SetReminderPreferences.Result.PermissionDenied) {
+                _effects.send(SettingsEffect.ReminderPermissionDenied)
+            }
         }
     }
 

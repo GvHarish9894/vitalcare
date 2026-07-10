@@ -18,7 +18,7 @@ Screens and visuals live in [03-ui-ux-design.md](03-ui-ux-design.md); this doc i
 | F6 | Analytics | Daily / weekly / monthly trend charts per vital |
 | F7 | Backup & Export | Optional CSV export and Google Drive backup/restore |
 | F8 | Settings | Profile name, appearance (dark mode), backup controls, about |
-| F9 | Fluid Balance | Log water intake & urine output; daily totals, net balance, goal (D-032) |
+| F9 | Fluid Balance | Log water intake & urine output; daily totals, net balance, goal (D-033) |
 
 *(F1 Authentication was removed — the app has no accounts, D-018. Numbering is kept for
 continuity with the roadmap.)*
@@ -38,7 +38,7 @@ continuity with the roadmap.)*
 **Field requiredness (Proposed):** at least one vital (SpO₂, HR, or BP) must be filled to save;
 BP requires both systolic and diastolic together. Empty vitals are stored as null, not 0.
 
-### 2a. Fluid entry fields (F9, separate from vitals — D-032)
+### 2a. Fluid entry fields (F9, separate from vitals — D-033)
 
 Fluid tracking is a **separate** concept from the vitals above: each entry is one discrete
 event (a drink, or a void), and the app **sums** them per day into totals + net balance. Entries
@@ -103,9 +103,9 @@ are **not** part of a `VitalRecord`.
 - FR-AN4: Empty state when the range has no data.
 
 ### F7 Backup & Export (details in [05-backup-and-export.md](05-backup-and-export.md))
-- FR-B1: **CSV export** — export all or filtered records to a `.csv` file via the platform save/share sheet. No account, no network (05 §3). Fluid entries export as a **separate fluids CSV** (D-032).
+- FR-B1: **CSV export** — export all or filtered records to a `.csv` file via the platform save/share sheet. No account, no network (05 §3). Fluid entries export as a **separate fluids CSV** (D-033).
 - FR-B2: **Connect Google Drive** — optional; runs Google authorization for the Drive scope only (D-021). The app is fully usable without it.
-- FR-B3: **Back up now** — upload a full JSON snapshot (vital records **and** fluid entries, backup `schemaVersion` 2 — D-032) to the user's Drive `appDataFolder` (05 §5); records the last-backup time.
+- FR-B3: **Back up now** — upload a full JSON snapshot (vital records **and** fluid entries, backup `schemaVersion` 2 — D-033) to the user's Drive `appDataFolder` (05 §5); records the last-backup time.
 - FR-B4: **Auto-backup** — user picks Off (default) / Daily / Weekly / Monthly; scheduled via WorkManager / BGTaskScheduler (D-022).
 - FR-B5: **Restore from Drive** — download the backup and **merge** it in (non-destructive, newer-wins, D-024); never wipes local data.
 - FR-B6: **Disconnect Drive** — revokes the token, clears it from secure storage, cancels auto-backup.
@@ -117,9 +117,9 @@ are **not** part of a `VitalRecord`.
 - FR-SE3: Backup & Export section — CSV export; Drive connect/disconnect; Back up now; Restore; auto-backup cadence; last-backup time (F7).
 - FR-SE4: About — app version; link to the open-source project.
 - FR-SE5: Privacy — "Share anonymous usage & crash data" toggle controlling Firebase Analytics + Crashlytics; on by default, PHI-free either way (D-028/D-029).
-- FR-SE6: Fluids — volume unit (mL / oz) selector and daily intake goal (mL), both persisted in settings (D-032).
+- FR-SE6: Fluids — volume unit (mL / oz) selector and daily intake goal (mL), both persisted in settings (D-033).
 
-### F9 Fluid Balance (D-032)
+### F9 Fluid Balance (D-033)
 - FR-FL1: Log a fluid entry per §2a: type (Intake/Output), amount (in the display unit), time, optional note. Validate before save (BR-6); amounts stored canonically in mL.
 - FR-FL2: Today view — today's **intake total**, **output total**, **net balance (intake − output)**, and **goal progress** toward the daily intake goal, updating reactively (Flow from Room).
 - FR-FL3: Quick-add presets for common amounts (e.g. 250 mL) plus a full entry form for custom amounts/notes and editing.

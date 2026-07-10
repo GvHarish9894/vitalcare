@@ -16,7 +16,7 @@ import kotlinx.datetime.minus
 import kotlin.time.Clock
 
 /**
- * CSV export for fluid entries (FR-FL6, D-032): a separate RFC 4180 file for the
+ * CSV export for fluid entries (FR-FL6, D-033): a separate RFC 4180 file for the
  * chosen scope, handed to the platform save/share sheet. Amounts are the
  * canonical mL value. Mirrors [ExportCsv].
  */

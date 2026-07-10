@@ -1,7 +1,7 @@
 package com.techgv.vitalcare.domain.model
 
 /**
- * Today's fluid balance for the Dashboard card and Fluids hub (FR-FL2, D-032).
+ * Today's fluid balance for the Dashboard card and Fluids hub (FR-FL2, D-033).
  * All amounts are canonical mL; the UI converts to the display unit.
  */
 data class FluidDayBalance(
