@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android-framework strings (notification channel) — user-facing app
+     strings live in composeResources (D-017); the channel name is read by
+     the OS Settings app, which can't use Compose resources. -->
+<resources>
+    <string name="reminder_channel_name">Vitals reminders</string>
+    <string name="backup_channel_name">Backup</string>
+    <string name="backup_notification_title">VitalCare</string>
+    <string name="backup_notification_running">Backing up to Google Drive…</string>
+    <string name="backup_notification_done">Backed up to Google Drive ✓</string>
+    <string name="backup_notification_failed">Backup failed — your data is safe on this device</string>
+</resources>

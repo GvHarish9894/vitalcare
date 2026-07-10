@@ -2,6 +2,7 @@ package com.techgv.vitalcare.data.backup
 
 import com.techgv.vitalcare.core.util.AppError
 import com.techgv.vitalcare.core.util.AppResult
+import com.techgv.vitalcare.core.util.debugLog
 import com.techgv.vitalcare.domain.backup.BackupRemote
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -41,7 +42,10 @@ class DriveClient(
         } else {
             updateFile(accessToken, existingId, content)
         }
-        if (!response.status.isSuccess()) return failureFor(response)
+        if (!response.status.isSuccess()) {
+            debugLog(TAG, "upload ${response.status} — ${response.bodyAsText().take(600)}")
+            return failureFor(response)
+        }
         AppResult.Success(Unit)
     }
 
@@ -52,7 +56,10 @@ class DriveClient(
             parameter("alt", "media")
             header(HttpHeaders.Authorization, "Bearer $accessToken")
         }
-        if (!response.status.isSuccess()) return failureFor(response)
+        if (!response.status.isSuccess()) {
+            debugLog(TAG, "download ${response.status} — ${response.bodyAsText().take(600)}")
+            return failureFor(response)
+        }
         AppResult.Success(response.bodyAsText())
     }
 
@@ -63,7 +70,10 @@ class DriveClient(
             parameter("fields", "files(id,name)")
             header(HttpHeaders.Authorization, "Bearer $accessToken")
         }
-        if (!response.status.isSuccess()) throw DriveHttpException(response.status)
+        if (!response.status.isSuccess()) {
+            debugLog(TAG, "list ${response.status} — ${response.bodyAsText().take(600)}")
+            throw DriveHttpException(response.status)
+        }
         return json.decodeFromString(FileListDto.serializer(), response.bodyAsText())
             .files.firstOrNull()?.id
     }
@@ -119,6 +129,7 @@ class DriveClient(
     } catch (drive: DriveHttpException) {
         AppResult.Failure(errorFor(drive.status))
     } catch (t: Throwable) {
+        debugLog(TAG, "network exception — ${t::class.simpleName}: ${t.message}")
         AppResult.Failure(AppError.Network)
     }
 
@@ -132,5 +143,6 @@ class DriveClient(
 
     private companion object {
         const val BOUNDARY = "vitalcare-backup-boundary"
+        const val TAG = "VitalCareDrive"
     }
 }

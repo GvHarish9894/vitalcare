@@ -3,19 +3,20 @@ package com.techgv.vitalcare.data.backup
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import com.google.android.gms.auth.GoogleAuthUtil
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
 import com.techgv.vitalcare.core.util.AppError
 import com.techgv.vitalcare.core.util.AppResult
+import com.techgv.vitalcare.core.util.debugLog
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import com.techgv.vitalcare.domain.backup.DriveConfig
-import io.ktor.client.HttpClient
-import io.ktor.client.request.forms.submitForm
-import io.ktor.http.parameters
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -32,7 +33,6 @@ import kotlin.coroutines.resumeWithException
 class AndroidDriveAuthorizer(
     private val context: Context,
     private val config: DriveConfig,
-    private val httpClient: HttpClient,
 ) : DriveAuthorizer {
 
     override val isAvailable: Boolean get() = config.enabled
@@ -46,7 +46,7 @@ class AndroidDriveAuthorizer(
     override suspend fun authorize(interactive: Boolean): AppResult<String> {
         if (!isAvailable) return AppResult.Failure(AppError.DriveAuth)
         val request = AuthorizationRequest.builder()
-            .setRequestedScopes(listOf(Scope(DRIVE_FILE_SCOPE)))
+            .setRequestedScopes(listOf(Scope(DRIVE_APPDATA_SCOPE)))
             .build()
         return try {
             val result = Identity.getAuthorizationClient(context).authorize(request).await()
@@ -72,6 +72,7 @@ class AndroidDriveAuthorizer(
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (t: Exception) {
+            debugLog(TAG, "authorize failed — ${t::class.simpleName}: ${t.message}")
             AppResult.Failure(AppError.DriveAuth)
         }
     }
@@ -84,35 +85,45 @@ class AndroidDriveAuthorizer(
             val authorization =
                 Identity.getAuthorizationClient(context).getAuthorizationResultFromIntent(data)
             authorization.accessToken?.let { AppResult.Success(it) }
-                ?: AppResult.Failure(AppError.DriveAuth)
+                ?: run {
+                    debugLog(TAG, "consent returned no access token (denied / not a test user)")
+                    AppResult.Failure(AppError.DriveAuth)
+                }
         } catch (t: Exception) {
+            debugLog(TAG, "consent result failed — ${t::class.simpleName}: ${t.message}")
             AppResult.Failure(AppError.DriveAuth)
         }
         continuation.resume(result)
     }
 
     override suspend fun revoke(): AppResult<Unit> {
-        // Tokens live inside Play Services, not in our storage — revoke the
-        // grant itself so a reconnect re-consents (FR-B6).
+        // Disconnect = forget locally + evict the cached access token so a
+        // future connect re-mints a fresh one. We deliberately do NOT hit the
+        // OAuth revoke endpoint: the Authorization API has no revoke concept
+        // and keeps serving the (now-dead) token, which caused 401s on
+        // reconnect. Full account-level revocation stays available to the user
+        // in their Google Account settings. `drive.appdata` only ever exposes
+        // our own hidden folder, so retaining the grant until then is low-risk.
         val token = when (val silent = authorize(interactive = false)) {
             is AppResult.Success -> silent.value
-            is AppResult.Failure -> return AppResult.Success(Unit) // nothing to revoke
+            is AppResult.Failure -> return AppResult.Success(Unit) // nothing cached
         }
-        return try {
-            httpClient.submitForm(
-                url = "https://oauth2.googleapis.com/revoke",
-                formParameters = parameters { append("token", token) },
-            )
-            AppResult.Success(Unit)
+        try {
+            withContext(Dispatchers.IO) { GoogleAuthUtil.clearToken(context, token) }
         } catch (cancellation: CancellationException) {
             throw cancellation
-        } catch (t: Exception) {
-            AppResult.Success(Unit) // best effort — local disconnect proceeds regardless
+        } catch (t: Throwable) {
+            debugLog(TAG, "clearToken best-effort failed — ${t::class.simpleName}: ${t.message}")
         }
+        return AppResult.Success(Unit)
     }
 
     private companion object {
-        const val DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file"
+        // appDataFolder (D-023) requires drive.appdata — `drive.file` can't
+        // reach the hidden app folder. This scope is also strictly more
+        // private: it can ONLY see our own app data, never the user's files.
+        const val DRIVE_APPDATA_SCOPE = "https://www.googleapis.com/auth/drive.appdata"
+        const val TAG = "VitalCareDrive"
     }
 }
 

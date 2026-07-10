@@ -8,6 +8,7 @@ import com.techgv.vitalcare.data.backup.BackupFile
 import com.techgv.vitalcare.data.backup.BackupSerializer
 import com.techgv.vitalcare.data.backup.toBackupDto
 import com.techgv.vitalcare.data.backup.toDomain
+import com.techgv.vitalcare.domain.backup.BackupProgressReporter
 import com.techgv.vitalcare.domain.backup.BackupRemote
 import com.techgv.vitalcare.domain.backup.BackupScheduler
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
@@ -58,6 +59,7 @@ class BackupNow(
     private val authorizer: DriveAuthorizer,
     private val appInfo: AppInfo,
     private val clock: Clock,
+    private val progress: BackupProgressReporter,
 ) {
     suspend operator fun invoke(interactive: Boolean = true): AppResult<Unit> {
         val records = when (val snapshot = vitalsRepository.getAll()) {
@@ -75,14 +77,20 @@ class BackupNow(
         )
         val token = when (val auth = authorizer.authorize(interactive)) {
             is AppResult.Success -> auth.value
-            is AppResult.Failure -> return auth
+            is AppResult.Failure -> return auth // pre-upload; no progress notification shown
         }
+        // Only manual backups get a visible progress notification (03 §6).
+        if (interactive) progress.running()
         return when (val uploaded = remote.upload(token, document)) {
             is AppResult.Success -> {
                 settings.setLastBackupAt(clock.nowEpochMillis())
+                if (interactive) progress.finished(success = true)
                 AppResult.Success(Unit)
             }
-            is AppResult.Failure -> uploaded
+            is AppResult.Failure -> {
+                if (interactive) progress.finished(success = false)
+                uploaded
+            }
         }
     }
 }

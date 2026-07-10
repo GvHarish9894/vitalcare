@@ -29,8 +29,12 @@ import com.techgv.vitalcare.domain.usecase.MergeBackupRecords
 import com.techgv.vitalcare.domain.usecase.ObserveBackupStatus
 import com.techgv.vitalcare.domain.usecase.ObserveVitalRecord
 import com.techgv.vitalcare.domain.usecase.RestoreFromDrive
+import com.techgv.vitalcare.core.navigation.PendingNavigation
+import com.techgv.vitalcare.domain.reminders.ReminderPermissionMonitor
 import com.techgv.vitalcare.domain.usecase.SaveVitalRecord
 import com.techgv.vitalcare.domain.usecase.SetAutoBackup
+import com.techgv.vitalcare.domain.usecase.SetReminderPreferences
+import com.techgv.vitalcare.domain.usecase.SyncReminders
 import io.ktor.client.HttpClient
 import com.techgv.vitalcare.domain.validation.VitalsValidator
 import com.techgv.vitalcare.feature.analytics.AnalyticsViewModel
@@ -59,6 +63,8 @@ val coreModule: Module = module {
     single { CsvEncoder() }
     single<Telemetry> { NoOpTelemetry() }
     single { AppSettings(get()) }
+    single { PendingNavigation() }
+    single { ReminderPermissionMonitor(get()) }
 }
 
 val databaseModule: Module = module {
@@ -95,14 +101,19 @@ val backupModule: Module = module {
     single<BackupRemote> { DriveClient(get()) }
     factory { ConnectDrive(get(), get()) }
     factory { DisconnectDrive(get(), get(), get()) }
-    factory { BackupNow(get(), get(), get(), get(), get(), get(), get()) }
+    factory { BackupNow(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { RestoreFromDrive(get(), get(), get(), get(), get()) }
     factory { SetAutoBackup(get(), get()) }
     factory { ObserveBackupStatus(get(), get()) }
 }
 
+val reminderModule: Module = module {
+    factory { SyncReminders(get(), get(), get()) }
+    factory { SetReminderPreferences(get(), get(), get()) }
+}
+
 val viewModelModule: Module = module {
-    viewModel { DashboardViewModel(get(), get(), get(), get()) }
+    viewModel { DashboardViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel { HistoryViewModel(get(), get()) }
     viewModel { AnalyticsViewModel(get(), get(), get()) }
     viewModel {
@@ -117,6 +128,9 @@ val viewModelModule: Module = module {
             backupNow = get(),
             restoreFromDrive = get(),
             setAutoBackup = get(),
+            setReminderPreferences = get(),
+            reminderPermissionMonitor = get(),
+            reminderPermission = get(),
             timeZone = get(),
         )
     }
@@ -134,6 +148,7 @@ val viewModelModule: Module = module {
             recordId = params.getOrNull(),
             saveVitalRecord = get(),
             getVitalRecord = get(),
+            reminderScheduler = get(),
             clock = get(),
             timeZone = get(),
         )

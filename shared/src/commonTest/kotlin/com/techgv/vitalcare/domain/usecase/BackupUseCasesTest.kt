@@ -8,10 +8,12 @@ import com.techgv.vitalcare.core.util.AppResult
 import com.techgv.vitalcare.data.backup.BackupFile
 import com.techgv.vitalcare.data.backup.BackupSerializer
 import com.techgv.vitalcare.data.backup.toBackupDto
+import com.techgv.vitalcare.domain.backup.BackupProgressReporter
 import com.techgv.vitalcare.domain.backup.BackupRemote
 import com.techgv.vitalcare.domain.backup.BackupScheduler
 import com.techgv.vitalcare.domain.backup.DriveAuthorizer
 import com.techgv.vitalcare.domain.model.AutoBackupCadence
+import com.techgv.vitalcare.domain.model.ReminderPreferences
 import com.techgv.vitalcare.domain.model.ThemePreference
 import com.techgv.vitalcare.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -29,6 +32,7 @@ private class FakeSettingsRepository : SettingsRepository {
     override val driveConnected = MutableStateFlow(false)
     override val lastBackupAt = MutableStateFlow(0L)
     override val autoBackupCadence = MutableStateFlow(AutoBackupCadence.OFF)
+    override val reminderPreferences = MutableStateFlow(ReminderPreferences())
 
     override fun setTheme(value: ThemePreference) { theme.value = value }
     override fun setProfileName(value: String) { profileName.value = value }
@@ -36,6 +40,9 @@ private class FakeSettingsRepository : SettingsRepository {
     override fun setDriveConnected(value: Boolean) { driveConnected.value = value }
     override fun setLastBackupAt(value: Long) { lastBackupAt.value = value }
     override fun setAutoBackupCadence(value: AutoBackupCadence) { autoBackupCadence.value = value }
+    override fun setReminderPreferences(value: ReminderPreferences) {
+        reminderPreferences.value = value
+    }
 }
 
 private class FakeAuthorizer(
@@ -66,6 +73,13 @@ private class FakeScheduler : BackupScheduler {
     override fun cancel() { cancelled = true }
 }
 
+private class RecordingProgressReporter : BackupProgressReporter {
+    var runningShown = false
+    var finishedSuccess: Boolean? = null
+    override fun running() { runningShown = true }
+    override fun finished(success: Boolean) { finishedSuccess = success }
+}
+
 class BackupUseCasesTest {
 
     private val vitals = FakeVitalsRepository()
@@ -74,9 +88,10 @@ class BackupUseCasesTest {
     private val remote = FakeRemote()
     private val scheduler = FakeScheduler()
     private val serializer = BackupSerializer()
+    private val progress = RecordingProgressReporter()
 
     private fun backupNow() = BackupNow(
-        vitals, settings, serializer, remote, authorizer, AppInfo("1.0"), Fixtures.clock,
+        vitals, settings, serializer, remote, authorizer, AppInfo("1.0"), Fixtures.clock, progress,
     )
 
     private fun restore() = RestoreFromDrive(
@@ -101,14 +116,16 @@ class BackupUseCasesTest {
     }
 
     @Test
-    fun backupRecordsLastBackupTime() = runTest {
+    fun backupRecordsLastBackupTimeAndReportsProgress() = runTest {
         vitals.seed(Fixtures.record(id = "a"))
         assertIs<AppResult.Success<Unit>>(backupNow()(interactive = true))
         assertEquals(Fixtures.nowEpochMillis, settings.lastBackupAt.value)
+        assertTrue(progress.runningShown)
+        assertEquals(true, progress.finishedSuccess)
     }
 
     @Test
-    fun failedUploadLeavesLastBackupUntouched() = runTest {
+    fun failedUploadLeavesLastBackupUntouchedAndReportsFailure() = runTest {
         remote.failUpload = true
         vitals.seed(Fixtures.record(id = "a"))
 
@@ -116,6 +133,14 @@ class BackupUseCasesTest {
 
         assertEquals(AppError.Network, failure.error)
         assertEquals(0L, settings.lastBackupAt.value)
+        assertEquals(false, progress.finishedSuccess)
+    }
+
+    @Test
+    fun autoBackupStaysQuiet() = runTest {
+        vitals.seed(Fixtures.record(id = "a"))
+        assertIs<AppResult.Success<Unit>>(backupNow()(interactive = false))
+        assertFalse(progress.runningShown) // no notification for silent auto-backup
     }
 
     @Test
