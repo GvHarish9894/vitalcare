@@ -41,13 +41,13 @@ done in the Google Play Console; **[external]** items live outside both.
 
 ## Play Console configuration — [console]
 - [ ] Enroll in **Play App Signing** (first upload)
-- [ ] **Data Safety form** — declare exactly what the shipping build sends.
-      NOTE: the runtime Crashlytics/Analytics SDK is **not wired yet** (only the
-      mapping-upload plugin is — see `androidApp/build.gradle.kts`). Confirm what
-      the release build actually transmits before answering. If telemetry is not
-      live, the honest answer is "no data collected/shared", which is simplest.
-      If it is live, declare: Crash logs + App diagnostics, anonymous, not linked
-      to identity, with a user opt-out.
+- [ ] **Data Safety form** — Firebase **Analytics + Crashlytics are now live on
+      Android** (`AndroidTelemetry`, behind the Telemetry seam). Declare:
+      **App activity / App info & performance** (screen views, feature usage) and
+      **Crash logs & diagnostics**, collected anonymously, **not** linked to
+      identity, with a **user opt-out** (Settings → Privacy, D-029). No health
+      data / PHI is ever sent (§07/6). Note: iOS telemetry is still NoOp until the
+      Firebase iOS SDK is wired in Xcode — this applies to the Android build.
 - [ ] **Health apps declaration** — choose category **Medical** or
       **Health & Fitness** and complete Google's health-apps declaration.
 - [ ] **Content rating** questionnaire (IARC)
