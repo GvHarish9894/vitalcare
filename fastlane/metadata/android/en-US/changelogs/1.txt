@@ -1,0 +1,7 @@
+First release of VitalCare.
+
+• Record SpO₂, heart rate, and blood pressure
+• Track fluid balance — water intake and urine output with daily goals
+• Dashboard, history with filters/search, and trend analytics
+• CSV export and optional Google Drive backup to your own account
+• Local-first and private: no account, no backend, data stays on your device

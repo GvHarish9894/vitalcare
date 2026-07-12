@@ -1,0 +1,40 @@
+VitalCare is a local-first health tracker for recording your vital signs and
+fluid balance in seconds — and keeping every reading private, on your own device.
+
+No account. No sign-up. No backend. Your health data never leaves your phone
+unless you choose to export it or back it up to your own Google Drive.
+
+WHAT YOU CAN TRACK
+• SpO₂ (blood oxygen)
+• Heart rate
+• Blood pressure (systolic & diastolic)
+• Fluid balance — water intake and urine output, with daily goals
+
+FEATURES
+• Fast recording with sensible validation ranges
+• Dashboard with today's summary and your latest reading
+• History with grouping, filters, and search
+• Trends and analytics over time
+• CSV export you can save or share anywhere
+• Optional Google Drive backup to YOUR own account (least-privilege access —
+  the app only ever sees the backup files it created)
+• Light and dark themes; mL/oz units
+• Optional reminders to take a reading
+
+PRIVACY FIRST
+• Everything is stored on your device, protected by the OS sandbox and device
+  encryption.
+• We operate no server for your data — there is nothing for us to see.
+• Optional, anonymous, health-data-free diagnostics can be turned off in
+  Settings.
+• Full privacy policy:
+  https://github.com/GvHarish9894/vitalcare/blob/master/PRIVACY.md
+
+OPEN SOURCE
+VitalCare is open source. Review the code or contribute at:
+https://github.com/GvHarish9894/vitalcare
+
+NOT A MEDICAL DEVICE
+VitalCare is a personal record-keeping tool. It is not a medical device and
+does not diagnose, treat, or provide medical advice. Always consult a qualified
+healthcare professional about your health.

@@ -165,14 +165,14 @@ relevant phase) · `Amended by D-xxx` (still holds, but modified) · `Superseded
 **Rationale:** An open-source app must be clonable-and-runnable by anyone in one step; the only never-committed item is the Drive OAuth client (abuse/quota risk).
 **Rejected:** Committing a shared/demo OAuth client for Drive (abuse + quota risk, ties contributors to our Google project).
 
-## D-028 — Firebase retained for Analytics + Crashlytics only (never auth or data) — `Settled`
+## D-028 — Firebase retained for Analytics + Crashlytics only (never auth or data) — `Settled` · `Amended by D-034`
 **Context (2026-07-04):** maintainers want crash visibility and product usage insight even though auth and Firestore were removed (D-018/D-020).
 **Decision:** Keep the Firebase project and its committed app config (D-027). Use Firebase **only** for **Analytics** and **Crashlytics**. **Firebase Auth and Firestore stay removed** — no user, health, or account data is ever written to Firebase. Telemetry is **strictly PHI-free** (D-011/§07/6): screen names, action counts, feature-usage flags, and crash stacks only — never vital values, remarks, or the profile name. Telemetry sits behind an `expect`/`actual` `Telemetry` seam in `commonMain`, with actuals wrapping the **native Firebase SDKs** per platform (Android: `firebase-analytics` + `firebase-crashlytics` via the Firebase BoM and the Crashlytics Gradle plugin; iOS: FirebaseAnalytics + FirebaseCrashlytics in `iosApp`; exact artifacts chosen at the telemetry phase). The app must build/run with the config absent (telemetry no-ops), preserving NFR-9 for forks. A **Settings opt-out** is offered (D-029/§03).
 **Rationale:** Operational visibility for maintainers without compromising the local-first, no-account, private-by-default data model — the health data itself never touches Firebase.
 **Trade-off:** anonymized, PHI-free telemetry does leave the device, softening the absolute "nothing leaves the device"; mitigated by the PHI-free rule and the opt-out. This is disclosed in the README/privacy note.
 **Rejected:** No telemetry (flying blind on crashes in the field); routing PHI through analytics/crash reports (never — hard rule §07/6); a self-hosted analytics stack (ops burden; unnecessary when the data is PHI-free).
 
-## D-029 — Telemetry opt-out in Settings; on by default — `Proposed`
+## D-029 — Telemetry opt-out in Settings; on by default — `Settled by D-034`
 **Decision (proposed):** Analytics + Crashlytics are enabled by default, with a **"Share anonymous usage & crash data"** toggle in Settings to turn them off. When off, no events or crash reports are sent. The choice is stored in settings and honored by the `Telemetry` seam.
 **Rationale:** Pragmatic default that still yields useful signal, while respecting users who want zero outbound data — consistent with the private-by-default ethos. Confirm/veto (opt-in vs opt-out) before the telemetry phase.
 **Rejected (for now):** Opt-in only (much lower signal); no control at all (poor fit for a health app being open-sourced).
@@ -207,6 +207,19 @@ relevant phase) · `Amended by D-xxx` (still holds, but modified) · `Superseded
 **Context (2026-07-05):** patients forget to record vitals; the user asked for interval reminders (1h/2h/4h/…) with customization, a permission-gated model, and notification-tap → Record Vitals.
 **Decision:** **Local** notifications only (no push service, D-018), opt-in and **OFF by default**. Preferences: interval presets 1/2/4/6/12h, active-hours window (default 08:00–21:00, overnight wrap supported), skip-when-already-recorded. Content is **PHI-free** (§07/6). Scheduling: Android = self-rechaining WorkManager one-time worker with a fire-time `shouldNotify` gate (quiet hours, foreground, already-recorded via DB); iOS = repeating `UNCalendarNotificationTrigger` per slot (≤60, under the 64-pending limit), skip-if-recorded best-effort on save. **Permission model:** the toggle stores intent; the OS permission is requested lazily — only when enabling; when `enabled && permission denied` the feature is dormant and the app shows a Dashboard banner + Settings warning deep-linking to system settings; permission is re-verified on every app resume and reminders auto-(re)schedule. Notification tap routes through a shared `PendingNavigation` StateFlow into `RecordVitalsRoute()` on both platforms.
 **Rejected:** AlarmManager exact alarms (SCHEDULE_EXACT_ALARM friction, reboot re-registration; minute-exactness unneeded); firebase push (needs a backend); reverting the toggle on denial (user chose intent-preserving banner model).
+
+## D-034 — Runtime Analytics + Crashlytics enabled on Android (telemetry phase, Android half) — `Settled`
+**Context (2026-07-12):** D-028 defined the Firebase Analytics + Crashlytics posture and the `Telemetry` seam but deferred wiring the **runtime** SDKs to "the telemetry phase"; until now the app shipped only `NoOpTelemetry`, so nothing was actually reported and no screen was instrumented. The `androidApp` had only the Crashlytics **Gradle plugin** (CI R8-mapping upload), not the runtime SDK. Maintainers asked to turn telemetry on.
+**Decision:** Wire the real Firebase-backed telemetry on **Android** now:
+1. Add the Firebase **BoM** + `firebase-analytics` + `firebase-crashlytics` runtime deps to `shared/androidMain` (versions via the catalog, BoM-managed).
+2. `AndroidTelemetry` implements the `Telemetry` seam — `logScreen` → `screen_view`, `logEvent`, `recordError` → Crashlytics `recordException`, and `setEnabled` toggling **both** `setAnalyticsCollectionEnabled` and `isCrashlyticsCollectionEnabled`, honoring the D-029 opt-out.
+3. Bind `Telemetry` **per-platform** (moved out of `coreModule` into `platformModule`): Firebase-backed on Android, **`NoOpTelemetry` on iOS** until the Firebase iOS SDK is added via Xcode (cocoapods/SPM) — the iOS half of the telemetry phase remains open.
+4. Instrument **all screens** from one place: `VitalCareNavHost` logs a single PHI-free `screen_view` (the route class name, e.g. `Dashboard`) on each destination change.
+This confirms **D-029** as `Settled` (opt-out, on by default) and delivers the Android portion of **D-028**.
+**Rationale:** Operational visibility maintainers asked for, using the seam D-028 already designed; centralizing screen logging in the NavHost keeps it DRY and PHI-free by construction. Firebase config stays absent-tolerant (NoOp when config missing), preserving NFR-9 for forks.
+**Store impact:** telemetry now leaves the device on Android, so the Play **Data Safety** form must declare App activity + Crash/diagnostics (anonymous, not linked to identity, with opt-out) — see `PLAY_STORE_SUBMISSION.md`.
+**Rejected:** dropping the `Telemetry` seam and calling Firebase directly (loses the PHI-free chokepoint and the iOS/NoOp fallback); enabling collection ungated by the opt-out (violates D-029); per-screen manual `logScreen` calls (repetitive, easy to miss a screen).
+**Open:** iOS runtime telemetry (Firebase iOS SDK in `iosApp`) — remains `NoOp` until wired.
 
 ---
 
