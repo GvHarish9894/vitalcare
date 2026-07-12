@@ -8,10 +8,10 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.googleServices)
-    // Crashlytics Gradle plugin only — uploads the R8 mapping so release crash
-    // traces de-obfuscate (CI). The runtime Crashlytics SDK is intentionally NOT
-    // added here: it would collect crashes ungated by the D-029 opt-out; runtime
-    // Crashlytics belongs to the telemetry phase behind the Telemetry seam (D-028).
+    // Crashlytics Gradle plugin — uploads the R8 mapping so release crash traces
+    // de-obfuscate (CI). The runtime Analytics + Crashlytics SDKs are wired via
+    // the shared module's AndroidTelemetry (behind the Telemetry seam, D-028),
+    // gated by the Settings opt-out (D-029).
     alias(libs.plugins.firebaseCrashlytics)
 }
 

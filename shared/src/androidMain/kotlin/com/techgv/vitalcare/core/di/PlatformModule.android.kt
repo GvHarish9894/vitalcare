@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.RoomDatabase
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
+import com.techgv.vitalcare.core.telemetry.AndroidTelemetry
+import com.techgv.vitalcare.core.telemetry.Telemetry
 import com.techgv.vitalcare.core.util.AppInfo
 import com.techgv.vitalcare.data.backup.AndroidBackupScheduler
 import com.techgv.vitalcare.data.backup.AndroidDriveAuthorizer
@@ -26,6 +28,7 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 
 actual val platformModule: Module = module {
+    single<Telemetry> { AndroidTelemetry(androidContext()) }
     single<RoomDatabase.Builder<VitalCareDatabase>> { databaseBuilder(androidContext()) }
     single<Settings> {
         SharedPreferencesSettings(

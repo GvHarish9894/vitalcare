@@ -1,6 +1,8 @@
 package com.techgv.vitalcare.core.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -8,8 +10,11 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.toRoute
+import com.techgv.vitalcare.core.telemetry.Telemetry
 import com.techgv.vitalcare.domain.model.FluidType
+import org.koin.compose.koinInject
 import com.techgv.vitalcare.feature.analytics.AnalyticsScreen
 import com.techgv.vitalcare.feature.dashboard.DashboardScreen
 import com.techgv.vitalcare.feature.fluids.FluidsScreen
@@ -33,6 +38,18 @@ fun VitalCareNavHost(
     val scope = rememberCoroutineScope()
     val showSnackbar: (String) -> Unit = remember(scope, onShowSnackbar) {
         { message -> scope.launch { onShowSnackbar(message) } }
+    }
+
+    // Analytics: log one screen_view per destination change (D-028). PHI-free —
+    // the route's class name only. Covers every screen from one place.
+    val telemetry = koinInject<Telemetry>()
+    val currentEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(currentEntry?.destination?.route) {
+        val route = currentEntry?.destination?.route ?: return@LaunchedEffect
+        val screenName = route.substringBefore('/').substringBefore('?')
+            .substringAfterLast('.')
+            .removeSuffix("Route")
+        if (screenName.isNotBlank()) telemetry.logScreen(screenName)
     }
 
     NavHost(

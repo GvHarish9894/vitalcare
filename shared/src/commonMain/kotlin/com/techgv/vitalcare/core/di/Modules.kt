@@ -2,8 +2,6 @@ package com.techgv.vitalcare.core.di
 
 import androidx.room.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.techgv.vitalcare.core.telemetry.NoOpTelemetry
-import com.techgv.vitalcare.core.telemetry.Telemetry
 import com.techgv.vitalcare.core.util.CsvEncoder
 import com.techgv.vitalcare.core.util.DefaultDispatcherProvider
 import com.techgv.vitalcare.core.util.DispatcherProvider
@@ -76,7 +74,8 @@ val coreModule: Module = module {
     single<Clock> { Clock.System }
     single<TimeZone> { TimeZone.currentSystemDefault() }
     single { CsvEncoder() }
-    single<Telemetry> { NoOpTelemetry() }
+    // Telemetry (D-028) is bound per-platform in platformModule: Firebase-backed
+    // on Android, NoOp on iOS until the Firebase iOS SDK is wired.
     single { AppSettings(get()) }
     single { PendingNavigation() }
     single { ReminderPermissionMonitor(get()) }
