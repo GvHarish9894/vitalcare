@@ -117,8 +117,11 @@ import vitalcare.shared.generated.resources.settings_google_drive
 import vitalcare.shared.generated.resources.settings_volume_unit
 import vitalcare.shared.generated.resources.unit_ml_name
 import vitalcare.shared.generated.resources.unit_oz_name
+import vitalcare.shared.generated.resources.settings_disclaimer
 import vitalcare.shared.generated.resources.settings_privacy
 import vitalcare.shared.generated.resources.settings_privacy_note
+import vitalcare.shared.generated.resources.settings_privacy_policy
+import vitalcare.shared.generated.resources.settings_privacy_policy_subtitle
 import vitalcare.shared.generated.resources.settings_privacy_toggle
 import vitalcare.shared.generated.resources.settings_profile
 import vitalcare.shared.generated.resources.settings_profile_name
@@ -259,6 +262,25 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
                 )
             }
             Surface(
+                onClick = { uriHandler.openUri(AppLinks.PRIVACY_POLICY) },
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                ) {
+                    Text(
+                        text = stringResource(Res.string.settings_privacy_policy),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = stringResource(Res.string.settings_privacy_policy_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Surface(
                 onClick = { uriHandler.openUri(AppLinks.REPOSITORY) },
                 color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.fillMaxWidth(),
@@ -278,6 +300,13 @@ fun SettingsScreen(showSnackbar: (String) -> Unit) {
                 }
             }
         }
+        // Medical disclaimer — required for a health app on the app stores.
+        Text(
+            text = stringResource(Res.string.settings_disclaimer),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp),
+        )
         Spacer(Modifier.height(24.dp))
     }
 
