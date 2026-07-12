@@ -1,9 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Vitals reminders (D-032) — requested at runtime only when the user
          enables the reminder toggle, never at app start. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Advertising ID: VitalCare shows no ads and does no ad attribution, so we
+         opt out entirely (D-028, privacy policy). Firebase Analytics auto-injects
+         AD_ID via play-services-measurement; strip it so Data Safety can truthfully
+         declare "no advertising ID". -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID"
+        tools:node="remove" />
 
     <!-- allowBackup=false: health data must not leave the device via OS
          backup transports (§07/3); the app has its own opt-in backup. -->
@@ -15,6 +25,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <!-- Belt-and-suspenders with the AD_ID permission removal above: tell the
+             Analytics SDK never to collect the advertising ID (D-028). -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
         <!-- adjustResize ensures the window resizes when the IME shows;
              edge-to-edge additionally requires Compose to consume IME insets
              (imePadding on scrollable/keyboard-hosting screens). -->
