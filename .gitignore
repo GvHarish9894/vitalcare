@@ -17,3 +17,9 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+
+# Release signing — never commit the keystore or its base64 (D-027)
+signing/
+*.jks
+*.keystore
+*.b64
