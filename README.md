@@ -7,6 +7,8 @@ see your trends over time. No account. No sign-up. No backend.
 Built with **Kotlin Multiplatform + Compose Multiplatform**: one shared
 codebase for business logic *and* UI on both platforms.
 
+<a href="https://play.google.com/store/apps/details?id=com.techgv.vitalcare"><img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="56"></a>
+
 | Dashboard | Record | Analytics | Dark theme |
 |---|---|---|---|
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Record Vitals](docs/screenshots/record.png) | ![Analytics](docs/screenshots/analytics.png) | ![Dark](docs/screenshots/settings-dark.png) |
@@ -70,9 +72,10 @@ for the 3-step setup. Everything else in the app works without it.
   *your* Google account (`drive.file` scope — the app can't see anything else
   in your Drive).
 - The repo contains a Firebase config for **crash/usage telemetry only**
-  (client identifiers, not secrets). The telemetry layer is currently a
-  no-op stub; when enabled it is PHI-free by design and can be turned off in
-  Settings → Privacy.
+  (client identifiers, not secrets). On Android this telemetry (Firebase
+  Analytics + Crashlytics) is **live but PHI-free by design** — it never
+  records your vitals, remarks, or name, collects **no advertising ID**, and
+  can be turned off any time in Settings → Privacy. iOS remains a no-op stub.
 
 ## Architecture
 
